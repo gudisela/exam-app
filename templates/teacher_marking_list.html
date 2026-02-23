@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Marking — {{ exam_id }}</title>
+  <style>
+    body{font-family:Arial;margin:18px}
+    table{border-collapse:collapse;width:100%}
+    th,td{border:1px solid #ddd;padding:8px;text-align:left}
+    th{background:#f4f4f4}
+    a.button{display:inline-block;padding:6px 10px;background:#1f6feb;color:#fff;border-radius:4px;text-decoration:none}
+  </style>
+</head>
+<body>
+  <h2>Marking — Exam: {{ exam_id }}</h2>
+  <p><a href="/teacher/exams">← Back to Exams</a></p>
+
+  {% if attempts %}
+    <table>
+      <tr><th>Student</th><th>Last saved</th><th>Submitted</th><th>Action</th></tr>
+      {% for s in attempts %}
+        {% set f = s + '.json' %}
+        <tr>
+          <td>{{ s }}</td>
+          <td>
+            {% set attempt_file = (('attempts/' + exam_id + '/' + s + '.json')) %}
+            {# show saved_at if available - handled client side if needed #}
+            -
+          </td>
+          <td>
+            {% set path = 'attempts/' + exam_id + '/' + s + '.json' %}
+            {% set data = None %}
+            <!-- will be read by the marking page -->
+            -
+          </td>
+          <td>
+            <a class="button" href="/teacher/mark/{{ exam_id }}/{{ s }}">Open</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p>No attempts found for this exam.</p>
+  {% endif %}
+</body>
+</html>
