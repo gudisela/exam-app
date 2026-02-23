@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Results — {{ exam_id }}</title>
+
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .box {
+            border: 1px solid #ccc;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+        .score { font-size: 20px; font-weight: bold; color: green; }
+        .comment { color: #444; margin-top: 6px; }
+    </style>
+</head>
+
+<body>
+
+<h2>Exam Results</h2>
+<p><b>Exam:</b> {{ exam_id }}</p>
+<p><b>Student:</b> {{ student }}</p>
+
+{% if grading and grading.marks %}
+
+    {% for q, m in grading.marks.items() %}
+        <div class="box">
+            <div>Question {{ q }}</div>
+            <div class="score">Marks: {{ m.score }}</div>
+            <div class="comment">{{ m.comment }}</div>
+        </div>
+    {% endfor %}
+
+    <div class="box">
+        <b>Overall Comment</b><br>
+        {{ grading.overall_comment }}
+    </div>
+
+{% else %}
+
+    <p>Marks not released yet.</p>
+
+{% endif %}
+
+</body>
+</html>
