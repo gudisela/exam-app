@@ -21,7 +21,9 @@ DRAWINGS_DIR = os.path.join(BASE_DIR, "drawings")
 for d in [DIAGRAM_FOLDER, EXAMS_DIR, ATTEMPTS_DIR, DRAWINGS_DIR]:
     os.makedirs(d, exist_ok=True)
     
-
+@app.route("/")
+def index():
+    return redirect("/teacher/create_exam")
 # ---------------------------------------
 # SERVE DIAGRAMS
 # ---------------------------------------
@@ -405,4 +407,5 @@ if __name__ == "__main__":
 
 port = int(os.environ.get("PORT", 5000))
 app.run(host="0.0.0.0", port=port)
+
 
