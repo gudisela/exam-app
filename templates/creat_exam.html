@@ -1,1 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Create Exam</title>
+
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+
+        textarea { width: 100%; height: 80px; margin-bottom: 10px; }
+
+        .question-block {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        .diagram-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            border: 1px dashed #aaa;
+            padding: 10px;
+            min-height: 70px;
+            margin-bottom: 10px;
+        }
+
+        .diagram-item {
+            border: 1px solid #ccc;
+            padding: 5px;
+            background: white;
+            cursor: grab;
+        }
+
+        .thumb {
+            width: 80px;
+            display: block;
+        }
+
+        button { padding: 6px 12px; margin-top: 6px; }
+    </style>
+</head>
+
+<body>
+
+<h2>Create Exam</h2>
+
+<form method="POST" action="/teacher/save_exam">
+
+    <label>Exam ID</label><br>
+    <input name="exam_id" required><br><br>
+
+    <label>Exam Title</label><br>
+    <input name="title" required><br><br>
+
+    <div id="questions"></div>
+
+    <button type="button" onclick="addQuestion()">+ Add Question</button>
+    <button type="submit">Save Exam</button>
+
+</form>
+
+<script>
+
+let qCount = 0;
+
+/* =========================
+   ADD QUESTION
+========================= */
+
+function addQuestion() {
+
+    qCount++;
+
+    const div = document.createElement("div");
+    div.className = "question-block";
+    div.id = "question_" + qCount;
+
+    div.innerHTML = `
+        <h3>Question ${qCount}</h3>
+
+        <textarea name="qtext_${qCount}"
+                  placeholder="Enter question text"></textarea>
+
+        <h4>Embedded Diagrams (No Drawing)</h4>
+
+        <div class="diagram-list" id="embedded_${qCount}"></div>
+
+        <input type="file" onchange="uploadEmbedded(event, ${qCount})">
+
+        <h4>Answer Diagram (Student Drawing Area)</h4>
+
+        <input type="file" onchange="uploadAnswerDiagram(event, ${qCount})">
+
+        <input type="hidden" name="answer_diagram_${qCount}"
+               id="answer_diagram_${qCount}">
+
+        <label>
+            <input type="checkbox" name="answer_enabled_${qCount}">
+            Enable drawing
+        </label>
+    `;
+
+    document.getElementById("questions").appendChild(div);
+
+    enableDrag(document.getElementById("embedded_" + qCount));
+}
+
+/* =========================
+   IMAGE UPLOADS
+========================= */
+
+function uploadEmbedded(event, qIndex) {
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+
+        const container = document.getElementById("embedded_" + qIndex);
+        const count = container.children.length + 1;
+
+        const item = document.createElement("div");
+        item.className = "diagram-item";
+        item.draggable = true;
+
+        item.innerHTML = `
+            <img src="${e.target.result}" class="thumb">
+            <input type="hidden"
+                   name="embedded_${qIndex}_${count}"
+                   value="${e.target.result}">
+        `;
+
+        container.appendChild(item);
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function uploadAnswerDiagram(event, qIndex) {
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        document.getElementById("answer_diagram_" + qIndex).value =
+            e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+}
+
+/* =========================
+   DRAG & DROP
+========================= */
+
+function enableDrag(container) {
+
+    let dragged = null;
+
+    container.addEventListener("dragstart", e => {
+        dragged = e.target.closest(".diagram-item");
+    });
+
+    container.addEventListener("dragover", e => {
+        e.preventDefault();
+    });
+
+    container.addEventListener("drop", e => {
+        e.preventDefault();
+
+        const target = e.target.closest(".diagram-item");
+
+        if (dragged && target && dragged !== target) {
+            container.insertBefore(dragged, target);
+        }
+    });
+}
+
+</script>
+
+</body>
+</html>
 
