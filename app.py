@@ -1,10 +1,9 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import os
 import base64
 import cloudinary
 import cloudinary.uploader
-import cloudinary.api
 
 # ---------------------------------------
 # FLASK APP
@@ -39,10 +38,8 @@ class Exam(db.Model):
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    exam_id = db.Column(
-        db.String(50),
-        db.ForeignKey('exam.exam_id', ondelete="CASCADE")
-    )
+    exam_id = db.Column(db.String(50),
+                        db.ForeignKey('exam.exam_id', ondelete="CASCADE"))
     question_index = db.Column(db.Integer)
     question_text = db.Column(db.Text)
     answer_diagram = db.Column(db.Text)
@@ -51,20 +48,39 @@ class Question(db.Model):
 
 class EmbeddedDiagram(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    question_id = db.Column(
-        db.Integer,
-        db.ForeignKey('question.id', ondelete="CASCADE")
-    )
+    question_id = db.Column(db.Integer,
+                            db.ForeignKey('question.id', ondelete="CASCADE"))
     image_url = db.Column(db.Text)
 
+
+# ✅ NEW — Attempt Table
+class Attempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    exam_id = db.Column(db.String(50),
+                        db.ForeignKey('exam.exam_id', ondelete="CASCADE"))
+    student_name = db.Column(db.Text)
+    submitted = db.Column(db.Boolean, default=False)
+
+
+# ✅ NEW — Answer Table
+class Answer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer,
+                           db.ForeignKey('attempt.id', ondelete="CASCADE"))
+    question_index = db.Column(db.Integer)
+    answer_text = db.Column(db.Text)
+    overlay_image = db.Column(db.Text)
+
+
 # ---------------------------------------
-# INIT DATABASE (ONE TIME ONLY)
+# INIT DATABASE
 # ---------------------------------------
 
 @app.route("/initdb")
 def initdb():
     db.create_all()
     return "Database initialized"
+
 
 # ---------------------------------------
 # HOME
@@ -74,6 +90,7 @@ def initdb():
 def index():
     return redirect("/teacher/create_exam")
 
+
 # ---------------------------------------
 # TEACHER — CREATE EXAM
 # ---------------------------------------
@@ -81,6 +98,7 @@ def index():
 @app.route("/teacher/create_exam")
 def teacher_create_exam():
     return render_template("create_exam.html")
+
 
 # ---------------------------------------
 # TEACHER — SAVE EXAM
@@ -92,7 +110,6 @@ def teacher_save_exam():
     exam_id = request.form.get("exam_id").lower()
     exam_title = request.form.get("title")
 
-    # Prevent duplicate exams
     existing_exam = Exam.query.get(exam_id)
     if existing_exam:
         return f"Exam '{exam_id}' already exists"
@@ -119,10 +136,7 @@ def teacher_save_exam():
             db.session.add(q)
             db.session.flush()
 
-            # -------------------------
-            # Embedded diagrams → Cloudinary
-            # -------------------------
-
+            # Embedded diagrams
             for subkey in sorted(request.form.keys()):
 
                 if subkey.startswith(f"embedded_{qnum}_"):
@@ -132,30 +146,23 @@ def teacher_save_exam():
                     if dataurl and dataurl.startswith("data:image"):
 
                         img_data = base64.b64decode(dataurl.split(",")[1])
-
                         upload_result = cloudinary.uploader.upload(img_data)
-                        image_url = upload_result["secure_url"]
 
                         db.session.add(EmbeddedDiagram(
                             question_id=q.id,
-                            image_url=image_url
+                            image_url=upload_result["secure_url"]
                         ))
 
-            # -------------------------
-            # Answer diagram → Cloudinary
-            # -------------------------
-
+            # Answer diagram
             answer_dataurl = request.form.get(f"answer_diagram_{qnum}")
             answer_enabled = request.form.get(f"answer_enabled_{qnum}")
 
             if answer_dataurl and answer_dataurl.startswith("data:image"):
 
                 img_data = base64.b64decode(answer_dataurl.split(",")[1])
-
                 upload_result = cloudinary.uploader.upload(img_data)
-                answer_url = upload_result["secure_url"]
 
-                q.answer_diagram = answer_url
+                q.answer_diagram = upload_result["secure_url"]
                 q.drawing_enabled = bool(answer_enabled)
 
             question_index += 1
@@ -163,6 +170,7 @@ def teacher_save_exam():
     db.session.commit()
 
     return redirect(f"/exam/start/{exam_id}")
+
 
 # ---------------------------------------
 # STUDENT — START EXAM
@@ -179,7 +187,6 @@ def start_exam(exam_id):
     questions = Question.query.filter_by(exam_id=exam_id)\
         .order_by(Question.question_index).all()
 
-    # Attach diagrams to each question
     for q in questions:
         q.embedded_diagrams = EmbeddedDiagram.query\
             .filter_by(question_id=q.id).all()
@@ -190,6 +197,75 @@ def start_exam(exam_id):
         exam_title=exam.title,
         questions=questions
     )
+
+
+# ---------------------------------------
+# ✅ AUTOSAVE ANSWER
+# ---------------------------------------
+
+@app.route("/exam/autosave", methods=["POST"])
+def exam_autosave():
+
+    data = request.get_json()
+
+    exam_id = data.get("exam_id")
+    student = data.get("studentName")
+    qindex = int(data.get("qindex"))
+    answer_text = data.get("answerText")
+    overlay = data.get("overlayImage")
+
+    attempt = Attempt.query.filter_by(
+        exam_id=exam_id,
+        student_name=student
+    ).first()
+
+    if not attempt:
+        attempt = Attempt(exam_id=exam_id, student_name=student)
+        db.session.add(attempt)
+        db.session.flush()
+
+    answer = Answer.query.filter_by(
+        attempt_id=attempt.id,
+        question_index=qindex
+    ).first()
+
+    if not answer:
+        answer = Answer(attempt_id=attempt.id, question_index=qindex)
+
+    answer.answer_text = answer_text
+    answer.overlay_image = overlay
+
+    db.session.add(answer)
+    db.session.commit()
+
+    return jsonify({"status": "saved"})
+
+
+# ---------------------------------------
+# ✅ FINAL SUBMIT
+# ---------------------------------------
+
+@app.route("/exam/submit", methods=["POST"])
+def exam_submit():
+
+    data = request.get_json()
+
+    exam_id = data.get("exam_id")
+    student = data.get("studentName")
+
+    attempt = Attempt.query.filter_by(
+        exam_id=exam_id,
+        student_name=student
+    ).first()
+
+    if not attempt:
+        return jsonify({"status": "error", "message": "No attempt found"})
+
+    attempt.submitted = True
+    db.session.commit()
+
+    return jsonify({"status": "submitted"})
+
 
 # ---------------------------------------
 # RUN
