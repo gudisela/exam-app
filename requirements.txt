@@ -1,4 +1,6 @@
-Flask==3.0.0
+Flask
 gunicorn
-
+Flask-SQLAlchemy
+SQLAlchemy
+psycopg2-binary
 cloudinary
