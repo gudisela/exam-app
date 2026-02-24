@@ -1,0 +1,12 @@
+[
+    {
+        "text": "Figure shows a ray of light as it enters the side of a plastic block. The ray of light passes from air into the plastic.State how the speed, wavelength and frequency of the wave in the plastic block compare with their values in the air.",
+        "embedded_diagrams": [
+            "q1_embedded_1.png"
+        ],
+        "answer_diagram": {
+            "enabled": true,
+            "src": "q1_answer.png"
+        }
+    }
+]

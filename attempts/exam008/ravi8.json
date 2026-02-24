@@ -1,0 +1,23 @@
+{
+  "exam_id": "exam008",
+  "student": "ravi8",
+  "answers": {
+    "1": {
+      "answerText": "Speed decreses\nwave length decreses\nfrequency remains same",
+      "overlay_file": "exam008_ravi8_1_20260221_161050.png",
+      "saved_at": "20260221_161050"
+    }
+  },
+  "submitted": true,
+  "submitted_at": "2026-02-21T16:10:58.560421",
+  "grading": {
+    "marks": {
+      "1": {
+        "score": "5",
+        "comment": "Good"
+      }
+    },
+    "overall_comment": "Excellent!",
+    "graded_at": "2026-02-22T10:35:17.324276"
+  }
+}

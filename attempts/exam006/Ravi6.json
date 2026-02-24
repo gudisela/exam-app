@@ -1,0 +1,13 @@
+{
+  "exam_id": "exam006",
+  "student": "Ravi6",
+  "answers": {
+    "1": {
+      "answerText": "Answer 1",
+      "overlay_file": null,
+      "saved_at": "20260221_115341"
+    }
+  },
+  "submitted": true,
+  "submitted_at": "2026-02-21T11:53:49.200404"
+}

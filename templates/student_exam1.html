@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ exam_title }}</title>
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+
+        .question-box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .diagram-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .diagram-container img {
+            width: 400px;
+            display: block;
+        }
+
+        .diagram-container canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            margin-top: 10px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>{{ exam_title }}</h2>
+<p><b>Exam ID:</b> {{ exam_id }}</p>
+
+<label><b>Student Name</b></label><br>
+<input id="studentName" style="width: 300px; padding: 6px;"><br><br>
+
+{% for q in questions %}
+<div class="question-box">
+
+    <h3>Question {{ loop.index }}</h3>
+
+    <p>{{ q.text }}</p>
+
+    {% if q.diagram %}
+    <div class="diagram-container">
+
+        <img src="{{ q.diagram }}">
+
+        <canvas id="canvas_{{ loop.index }}"
+                width="400"
+                height="250"></canvas>
+
+    </div>
+    {% endif %}
+
+    <textarea id="answer_{{ loop.index }}"
+              placeholder="Write your answer here…"></textarea>
+
+    <br>
+
+    <button onclick="autosave({{ loop.index }})">Save Answer</button>
+
+</div>
+{% endfor %}
+
+<button onclick="submitExam()">Final Submit</button>
+
+<script>
+<div class="toolbar">
+    <button type="button" onclick="setTool('pencil')">✏ Pencil</button>
+    <button type="button" onclick="setTool('line')">📏 Line</button>
+    <button type="button" onclick="setTool('eraser')">🧽 Eraser</button>
+
+    <input type="color" id="colorPicker" value="#ff0000">
+
+    <label>Size</label>
+    <input type="range" id="brushSize" min="1" max="5" value="2">
+</div>
+
+let currentTool = "pencil";
+let drawing = false;
+let startX, startY;
+
+function setTool(tool){
+    currentTool = tool;
+}
+
+function initCanvas(canvas){
+
+    const ctx = canvas.getContext("2d");
+    ctx.lineCap = "round";
+
+    canvas.onmousedown = (e) => {
+        drawing = true;
+        startX = e.offsetX;
+        startY = e.offsetY;
+
+        if (currentTool === "pencil" || currentTool === "eraser") {
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+        }
+    };
+
+    canvas.onmousemove = (e) => {
+        if (!drawing) return;
+
+        const x = e.offsetX;
+        const y = e.offsetY;
+
+        const color = document.getElementById("colorPicker").value;
+        const size = document.getElementById("brushSize").value;
+
+        if (currentTool === "pencil") {
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        if (currentTool === "eraser") {
+
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = size * 2;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+    };
+
+    canvas.onmouseup = (e) => {
+
+        if (!drawing) return;
+        drawing = false;
+
+        const x = e.offsetX;
+        const y = e.offsetY;
+
+        const color = document.getElementById("colorPicker").value;
+        const size = document.getElementById("brushSize").value;
+
+        if (currentTool === "line") {
+
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size;
+
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+    };
+}
+
+function initDrawing(canvas) {
+
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+
+    canvas.onmousedown = () => drawing = true;
+
+    canvas.onmouseup = () => {
+        drawing = false;
+        ctx.beginPath();
+    };
+
+    canvas.onmousemove = (e) => {
+        if (!drawing) return;
+
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+
+        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(e.offsetX, e.offsetY);
+    };
+}
+
+document.querySelectorAll("canvas").forEach(initDrawing);
+
+function autosave(qindex) {
+
+    const canvas = document.getElementById("canvas_" + qindex);
+
+    fetch("/exam/autosave", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            exam_id: "{{ exam_id }}",
+            qindex: qindex,
+            studentName: document.getElementById("studentName").value,
+            answerText: document.getElementById("answer_" + qindex).value,
+            overlayImage: canvas ? canvas.toDataURL("image/png") : null
+        })
+    });
+overlayImage: canvas.toDataURL("image/png")
+}
+
+function submitExam() {
+
+    fetch("/exam/submit", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            exam_id: "{{ exam_id }}",
+            studentName: document.getElementById("studentName").value
+        })
+    }).then(() => alert("Exam Submitted"));
+}
+
+</script>
+
+</body>
+</html>
+

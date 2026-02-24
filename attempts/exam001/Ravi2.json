@@ -1,0 +1,23 @@
+{
+  "exam_id": "exam001",
+  "student": "Ravi2",
+  "answers": {
+    "1": {
+      "answerText": "This is my answer for my first question",
+      "overlay_file": "exam001_ravi2_1_20260214_235342.png",
+      "saved_at": "20260214_235342"
+    }
+  },
+  "submitted": true,
+  "submitted_at": "2026-02-14T23:53:49.358026",
+  "grading": {
+    "marks": {
+      "1": {
+        "score": "4",
+        "comment": "well done"
+      }
+    },
+    "overall_comment": "Good work",
+    "graded_at": "2026-02-15T01:06:00.629783"
+  }
+}

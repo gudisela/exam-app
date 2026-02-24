@@ -1,0 +1,23 @@
+{
+  "exam_id": "exam008",
+  "student": "Sindhu",
+  "answers": {
+    "1": {
+      "answerText": "When the light ray passes from air to plastic\nSpeed decreses\nWavelength decreses\nFrequency remains same.",
+      "overlay_file": "exam008_sindhu_1_20260222_103218.png",
+      "saved_at": "20260222_103218"
+    }
+  },
+  "submitted": true,
+  "submitted_at": "2026-02-22T10:32:29.915820",
+  "grading": {
+    "marks": {
+      "1": {
+        "score": "5",
+        "comment": "Very good"
+      }
+    },
+    "overall_comment": "Excellent Performence!",
+    "graded_at": "2026-02-22T10:37:26.294827"
+  }
+}

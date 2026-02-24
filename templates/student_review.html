@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reviewed Paper</title>
+
+    <style>
+        body { font-family: Arial; margin: 20px; }
+
+        .qbox {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .diagram-wrap {
+            position: relative;
+            width: 400px;
+            border: 1px solid #aaa;
+            margin: 10px 0;
+        }
+
+        .diagram-wrap img {
+            width: 100%;
+            display: block;
+        }
+
+        .overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .marks {
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .comment {
+            background: white;
+            padding: 6px;
+            border-left: 3px solid #999;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>{{ exam_title }}</h2>
+<p><b>Student:</b> {{ student }}</p>
+
+{% for q in questions %}
+
+    {% set idx = loop.index %}
+    {% set ans = attempt.answers.get(idx|string, {}) %}
+    {% set mark = grading.marks.get(idx|string, {}) %}
+
+    <div class="qbox">
+
+        <h3>Question {{ idx }}</h3>
+
+        <p>{{ q.text }}</p>
+
+        <!-- Embedded diagrams -->
+        {% for img in q.embedded_diagrams %}
+            <img src="/exam_file/{{ exam_id }}/{{ img }}" width="400">
+        {% endfor %}
+
+        <!-- Answer diagram with overlay -->
+        {% if q.answer_diagram.enabled %}
+            <div class="diagram-wrap">
+                <img src="/exam_file/{{ exam_id }}/{{ q.answer_diagram.src }}">
+                
+                {% if ans.overlay_file %}
+                    <img class="overlay" src="/drawing/{{ ans.overlay_file }}">
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div><b>Your Answer:</b></div>
+        <div>{{ ans.answerText or "No answer written" }}</div>
+
+        <div class="marks">
+            Marks Awarded: {{ mark.score or "Not marked" }}
+        </div>
+
+        <div class="comment">
+            {{ mark.comment or "No teacher comment" }}
+        </div>
+
+    </div>
+
+{% endfor %}
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "exam_id": "exam003",
+  "student": "ravi1",
+  "answers": {
+    "1": {
+      "answerText": "The bouncing back of light is called reflection",
+      "overlay_file": "exam003_ravi1_1_20260215_025345.png",
+      "saved_at": "20260215_025345"
+    }
+  },
+  "submitted": true,
+  "submitted_at": "2026-02-15T02:53:51.249364",
+  "grading": {
+    "marks": {
+      "1": {
+        "score": "3",
+        "comment": "Good"
+      }
+    },
+    "overall_comment": "well done",
+    "graded_at": "2026-02-15T05:06:45.655548"
+  }
+}

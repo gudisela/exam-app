@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Mark — {{ exam_id }} / {{ student }}</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <style>
     body{font-family:Arial;margin:16px}
     .qbox{border:1px solid #ddd;padding:12px;margin-bottom:16px;border-radius:6px;background:#fafafa}
@@ -19,153 +20,137 @@
     input[type="number"]{width:90px;padding:6px}
   </style>
 </head>
+
 <body>
-  <h2>Marking — {{ exam_meta.title if exam_meta.title else exam_id }}</h2>
-  <p>Student: <strong>{{ student }}</strong></p>
-  <p><a href="/teacher/attempts/{{ exam_id }}">← Back to attempts</a></p>
 
-  <form id="gradingForm" onsubmit="return saveMarks();">
-    <div id="questionsContainer">
-      {% for idx, q in enumerate(questions, start=1) %}
-        {% set ans = attempt.get('answers', {}).get(idx|string, {}) %}
-        <div class="qbox" id="qbox_{{ idx }}">
-          <h3>Q{{ idx }} — {{ q.get('instruction') or q.get('instruction','') }} (qid: {{ q.get('qid') }})</h3>
+<h2>Marking — {{ exam_meta.title if exam_meta.title else exam_id }}</h2>
+<p>Student: <strong>{{ student }}</strong></p>
+<p><a href="/teacher/attempts/{{ exam_id }}">← Back to attempts</a></p>
 
-          <div style="display:flex;gap:16px;flex-wrap:wrap">
-            <div style="flex:0 0 640px; max-width:100%;">
-              <div class="diagram-wrap" id="diagram_wrap_{{ idx }}">
-                {% if q.diagram_image %}
-                  <img class="bg" id="bg_{{ idx }}" src="/exam_file/{{ exam_id }}/{{ q.diagram_image }}" alt="diagram">
-                {% else %}
-                  <div style="padding:28px">No diagram provided</div>
-                {% endif %}
-                {% if ans.overlay_file %}
-                  <img class="overlay" id="ov_{{ idx }}" src="/static/placeholder.png" alt="overlay">
-                {% endif %}
-              </div>
-            </div>
+<form id="gradingForm" onsubmit="return saveMarks();">
 
-            <div style="flex:1;min-width:260px;">
-              <label>Student answer (text)</label>
-              <div class="small" style="white-space:pre-wrap;padding:8px;border:1px solid #eee;background:#fff">{{ ans.answerText or "(no text saved)" }}</div>
+{% for q in questions %}
 
-              <label>Your marks (out of {{ q.get('marks') or '—' }})</label>
-              <input type="number" step="0.5" id="mark_{{ idx }}" name="mark_{{ idx }}" min="0">
+  {% set idx = loop.index %}
+  {% set ans = attempt.get('answers', {}).get(idx|string, {}) %}
 
-              <label>Comment</label>
-              <textarea id="comment_{{ idx }}" name="comment_{{ idx }}" placeholder="Add teacher comment..."></textarea>
-            </div>
-          </div>
+  <div class="qbox">
+
+    <h3>Question {{ idx }}</h3>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+
+      <div class="diagram-wrap">
+	
+    {% if q.answer_diagram and q.answer_diagram.enabled %}
+
+        <!-- Background diagram for drawing -->
+        <img class="bg"
+             src="/exam_file/{{ exam_id }}/{{ q.answer_diagram.src }}">
+
+        <!-- Student drawing -->
+        {% if ans.overlay_file %}
+            <img class="overlay"
+                 src="/drawing/{{ ans.overlay_file }}">
+        {% endif %}
+
+    {% else %}
+        <div style="padding:28px">No drawing for this question</div>
+    {% endif %}
+
+
+      </div>
+
+      <div style="flex:1;min-width:260px;">
+
+        <label>Student answer</label>
+        <div class="small" style="white-space:pre-wrap;padding:8px;border:1px solid #eee;background:#fff">
+          {{ ans.answerText or "(no answer saved)" }}
         </div>
-      {% endfor %}
+
+        <label>Your marks</label>
+        <input type="number" step="0.5" id="mark_{{ idx }}">
+
+        <label>Comment</label>
+        <textarea id="comment_{{ idx }}"></textarea>
+
+      </div>
+
     </div>
 
-    <label>Overall comment</label>
-    <textarea id="overall_comment" name="overall_comment"></textarea>
+  </div>
 
-    <div class="controls">
-      <button type="button" class="btn" onclick="loadOverlayFiles()">Load overlays</button>
-      <button type="submit" class="btn">Save grading</button>
-      <button type="button" class="btn secondary" onclick="releaseGrades()">Save and Release</button>
-    </div>
-  </form>
+{% endfor %}
+
+<label>Overall comment</label>
+<textarea id="overall_comment"></textarea>
+
+<div class="controls">
+  <button type="submit" class="btn">Save grading</button>
+</div>
+
+</form>
 
 <script>
-  const examId = "{{ exam_id }}";
-  const student = "{{ student }}";
-  const attempt = {{ attempt|tojson }};
-  const questions = {{ questions|tojson }};
+const examId = "{{ exam_id }}";
+const student = "{{ student }}";
+const attempt = {{ attempt|tojson }};
+const questions = {{ questions|tojson }};
 
-  // Overlay images live path resolution: overlays saved in DRAWINGS_DIR but not publicly served.
-  // We created overlay filenames in attempt.answers[idx].overlay_file; they are stored in server DRAWINGS_DIR.
-  // To make them visible we will create a simple route to serve drawings (if not present add to app.py):
-  //   @app.route("/drawing/<filename>") return send_from_directory(DRAWINGS_DIR, filename)
-  // If that route exists, overlays can be loaded at /drawing/<filename>
+async function saveMarks(){
 
-  function loadOverlayFiles(){
-    for (let i=0;i<questions.length;i++){
-      const idx = (i+1).toString();
-      const ans = attempt.answers && attempt.answers[idx];
-      if (!ans) continue;
-      const ov = ans.overlay_file;
-      if (!ov) continue;
-      // try to set img src (two possible locations)
-      const el = document.getElementById('ov_'+(i+1));
-      if (!el) continue;
-      // prefer drawing route
-      el.src = `/drawing/${ov}`;
-      el.onerror = function(){
-        // fallback: /drawings/<file> (if static mapping exists)
-        el.src = `/drawings/${ov}`;
-      }
-    }
-    alert('Attempted to load overlays. If images do not show, ensure server has a route to serve drawings.');
-  }
-
-  async function saveMarks(){
     const marks = {};
-    for (let i=0;i<questions.length;i++){
-      const idx = i+1;
-      const m = document.getElementById('mark_'+idx).value;
-      const c = document.getElementById('comment_'+idx).value;
-      if (m || c) marks[String(idx)] = { score: m, comment: c };
-    }
-    const payload = {
-      marks: marks,
-      overall_comment: document.getElementById('overall_comment').value,
-      released: false,
-      graded_by: "Teacher"
-    };
-    const res = await fetch(`/teacher/save_marks/${examId}/${student}`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
-    });
-    const j = await res.json();
-    if (j.status === 'success') {
-      alert('Saved');
-      return false;
-    } else {
-      alert('Save error: ' + (j.message||''));
-      return false;
-    }
-  }
 
-  async function releaseGrades(){
-    // same as save but mark released true
-    const marks = {};
-    for (let i=0;i<questions.length;i++){
-      const idx = i+1;
-      const m = document.getElementById('mark_'+idx).value;
-      const c = document.getElementById('comment_'+idx).value;
-      if (m || c) marks[String(idx)] = { score: m, comment: c };
-    }
-    const payload = {
-      marks: marks,
-      overall_comment: document.getElementById('overall_comment').value,
-      released: true,
-      graded_by: "Teacher"
-    };
-    const res = await fetch(`/teacher/save_marks/${examId}/${student}`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
-    });
-    const j = await res.json();
-    if (j.status === 'success') {
-      alert('Saved and released to student');
-      return false;
-    } else {
-      alert('Save error: ' + (j.message||''));
-      return false;
-    }
-  }
+    for (let i = 0; i < questions.length; i++) {
+        const idx = i + 1;
 
-  // auto-fill existing grading if present
-  if (attempt.grading && attempt.grading.marks){
-    for (const [k,v] of Object.entries(attempt.grading.marks)){
-      const idx = Number(k);
-      if (document.getElementById('mark_'+idx)) document.getElementById('mark_'+idx).value = v.score || '';
-      if (document.getElementById('comment_'+idx)) document.getElementById('comment_'+idx).value = v.comment || '';
+        const score = document.getElementById("mark_" + idx).value;
+        const comment = document.getElementById("comment_" + idx).value;
+
+        if (score || comment) {
+            marks[String(idx)] = { score, comment };
+        }
     }
-    if (attempt.grading.overall_comment) document.getElementById('overall_comment').value = attempt.grading.overall_comment;
-  }
+
+    const payload = {
+        marks,
+        overall_comment: document.getElementById("overall_comment").value
+    };
+
+    const res = await fetch(`/teacher/save_marks/${examId}/${student}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+    });
+
+    const j = await res.json();
+
+    if (j.status === "success") {
+        alert("Saved");
+    } else {
+        alert("Error saving");
+    }
+
+    return false;
+}
+
+// Restore existing marks if present
+if (attempt.grading && attempt.grading.marks) {
+
+    for (const [k, v] of Object.entries(attempt.grading.marks)) {
+        const idx = Number(k);
+
+        if (document.getElementById("mark_" + idx))
+            document.getElementById("mark_" + idx).value = v.score || '';
+
+        if (document.getElementById("comment_" + idx))
+            document.getElementById("comment_" + idx).value = v.comment || '';
+    }
+
+    if (attempt.grading.overall_comment)
+        document.getElementById("overall_comment").value = attempt.grading.overall_comment;
+}
 </script>
+
 </body>
 </html>
