@@ -232,14 +232,24 @@ def exam_autosave():
     if not answer:
         answer = Answer(attempt_id=attempt.id, question_index=qindex)
 
+    overlay_url = None
+
+    # ✅ Upload drawing to Cloudinary
+    if overlay and overlay.startswith("data:image"):
+
+        img_data = base64.b64decode(overlay.split(",")[1])
+
+        upload_result = cloudinary.uploader.upload(img_data)
+
+        overlay_url = upload_result["secure_url"]
+
     answer.answer_text = answer_text
-    answer.overlay_image = overlay
+    answer.overlay_image = overlay_url   # ✅ STORE URL, NOT BASE64
 
     db.session.add(answer)
     db.session.commit()
 
     return jsonify({"status": "saved"})
-
 
 # ---------------------------------------
 # ✅ FINAL SUBMIT
