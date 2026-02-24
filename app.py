@@ -1,46 +1,36 @@
-from flask import Flask, render_template, request, send_from_directory, jsonify, redirect, send_file
+from flask import Flask, render_template, request, send_from_directory, jsonify, redirect
 import os
 import base64
 import datetime
 import json
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET")
+)
 
 app = Flask(__name__)
 
 # ---------------------------------------
-# BASE DIRECTORIES
+# BASE DIRECTORIES (Still OK for JSON)
 # ---------------------------------------
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-DIAGRAM_FOLDER = os.path.join(BASE_DIR, "diagrams")
 EXAMS_DIR = os.path.join(BASE_DIR, "exams")
-ATTEMPTS_DIR = os.path.join(BASE_DIR, "attempts")
-DRAWINGS_DIR = os.path.join(BASE_DIR, "drawings")
 
-for d in [DIAGRAM_FOLDER, EXAMS_DIR, ATTEMPTS_DIR, DRAWINGS_DIR]:
-    os.makedirs(d, exist_ok=True)
+os.makedirs(EXAMS_DIR, exist_ok=True)
 
 # ---------------------------------------
-# HOME REDIRECT (GitHub improvement)
+# HOME REDIRECT
 # ---------------------------------------
 
 @app.route("/")
 def index():
     return redirect("/teacher/create_exam")
-
-# ---------------------------------------
-# SERVE DRAWINGS
-# ---------------------------------------
-
-@app.route("/drawing/<filename>")
-def serve_drawing(filename):
-
-    fullpath = os.path.join(DRAWINGS_DIR, filename)
-
-    if not os.path.exists(fullpath):
-        return "File NOT FOUND", 404
-
-    return send_file(fullpath)
 
 # ---------------------------------------
 # TEACHER — CREATE EXAM
@@ -69,7 +59,10 @@ def teacher_save_exam():
             qtext = request.form.get(key)
 
             embedded_images = []
-            counter = 1
+
+            # -----------------------------------
+            # EMBEDDED DIAGRAMS → Cloudinary
+            # -----------------------------------
 
             for subkey in sorted(request.form.keys()):
 
@@ -80,13 +73,16 @@ def teacher_save_exam():
                     if dataurl and dataurl.startswith("data:image"):
 
                         img_data = base64.b64decode(dataurl.split(",")[1])
-                        filename = f"q{qnum}_embedded_{counter}.png"
 
-                        with open(os.path.join(exam_folder, filename), "wb") as f:
-                            f.write(img_data)
+                        upload_result = cloudinary.uploader.upload(img_data)
 
-                        embedded_images.append(filename)
-                        counter += 1
+                        image_url = upload_result["secure_url"]
+
+                        embedded_images.append(image_url)
+
+            # -----------------------------------
+            # ANSWER DIAGRAM → Cloudinary
+            # -----------------------------------
 
             answer_dataurl = request.form.get(f"answer_diagram_{qnum}")
             answer_enabled = request.form.get(f"answer_enabled_{qnum}")
@@ -96,14 +92,14 @@ def teacher_save_exam():
             if answer_dataurl and answer_dataurl.startswith("data:image"):
 
                 img_data = base64.b64decode(answer_dataurl.split(",")[1])
-                filename = f"q{qnum}_answer.png"
 
-                with open(os.path.join(exam_folder, filename), "wb") as f:
-                    f.write(img_data)
+                upload_result = cloudinary.uploader.upload(img_data)
+
+                answer_url = upload_result["secure_url"]
 
                 answer_diagram = {
                     "enabled": bool(answer_enabled),
-                    "src": filename
+                    "src": answer_url
                 }
 
             questions.append({
@@ -111,6 +107,10 @@ def teacher_save_exam():
                 "embedded_diagrams": embedded_images,
                 "answer_diagram": answer_diagram
             })
+
+    # ---------------------------------------
+    # SAVE JSON (Safe & Lightweight)
+    # ---------------------------------------
 
     with open(os.path.join(exam_folder, "meta.json"), "w") as f:
         json.dump({
@@ -153,16 +153,7 @@ def start_exam(exam_id):
     )
 
 # ---------------------------------------
-# SERVE EXAM FILES
-# ---------------------------------------
-
-@app.route("/exam_file/<exam_id>/<filename>")
-def exam_file(exam_id, filename):
-    exam_folder = os.path.join(EXAMS_DIR, exam_id)
-    return send_from_directory(exam_folder, filename)
-
-# ---------------------------------------
-# RUN (Render-safe)
+# RUN
 # ---------------------------------------
 
 if __name__ == "__main__":
