@@ -66,17 +66,18 @@
 
     <h3>Question {{ loop.index }}</h3>
 
-    <p>{{ q.text }}</p>
+    <!-- ✅ Correct DB field -->
+    <p>{{ q.question_text }}</p>
 
-    <!-- ✅ Embedded diagrams (NO DRAWING) -->
+    <!-- ✅ Embedded diagrams (Cloudinary URLs) -->
     {% if q.embedded_diagrams %}
-        {% for img in q.embedded_diagrams %}
-            <img src="/exam_file/{{ exam_id }}/{{ img }}" width="400">
+        {% for diagram in q.embedded_diagrams %}
+            <img src="{{ diagram.image_url }}" width="400">
         {% endfor %}
     {% endif %}
 
-    <!-- ✅ Answer Diagram (WITH DRAWING) -->
-    {% if q.answer_diagram and q.answer_diagram.enabled %}
+    <!-- ✅ Answer Diagram -->
+    {% if q.answer_diagram %}
 
         <div class="toolbar">
             <button type="button" onclick="setTool('pencil')">✏ Pencil</button>
@@ -90,7 +91,8 @@
         </div>
 
         <div class="diagram-container">
-            <img src="/exam_file/{{ exam_id }}/{{ q.answer_diagram.src }}">
+            <!-- ✅ Direct Cloudinary URL -->
+            <img src="{{ q.answer_diagram }}">
             <canvas id="canvas_{{ loop.index }}"></canvas>
         </div>
 
@@ -99,7 +101,7 @@
     <textarea id="answer_{{ loop.index }}"
               placeholder="Write your answer here…"></textarea>
 
-    <br>
+    <br><br>
     <button onclick="autosave({{ loop.index }})">Save Answer</button>
 
 </div>
@@ -119,7 +121,7 @@ function setTool(tool) {
     currentTool = tool;
 }
 
-/* ✅ Canvas Auto-Resize to Image */
+/* ✅ Canvas Auto-Resize */
 function initCanvas(canvas) {
 
     const img = canvas.previousElementSibling;
@@ -216,9 +218,8 @@ function drawArrowhead(ctx, x1, y1, x2, y2) {
     ctx.stroke();
 }
 
-/* ✅ History System */
+/* ✅ History */
 function saveState(canvas) {
-    const ctx = canvas.getContext("2d");
     history[canvas.id].undoStack.push(canvas.toDataURL());
     history[canvas.id].redoStack = [];
 }
@@ -237,7 +238,7 @@ function restoreState(canvas, dataURL) {
 function undo(index) {
     const canvas = document.getElementById("canvas_" + index);
     const stack = history[canvas.id];
-    if (stack.undoStack.length < 2) return;
+    if (!stack || stack.undoStack.length < 2) return;
 
     stack.redoStack.push(stack.undoStack.pop());
     restoreState(canvas, stack.undoStack[stack.undoStack.length - 1]);
@@ -246,7 +247,7 @@ function undo(index) {
 function redo(index) {
     const canvas = document.getElementById("canvas_" + index);
     const stack = history[canvas.id];
-    if (stack.redoStack.length === 0) return;
+    if (!stack || stack.redoStack.length === 0) return;
 
     const state = stack.redoStack.pop();
     stack.undoStack.push(state);
@@ -261,7 +262,7 @@ function clearCanvas(index) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-/* ✅ Init All Canvases */
+/* ✅ Init canvases */
 document.querySelectorAll("canvas").forEach(initCanvas);
 
 /* ✅ Autosave */
@@ -281,7 +282,7 @@ function autosave(qindex) {
         })
     })
     .then(r => r.json())
-    .then(d => alert("Saved"));
+    .then(() => alert("Saved"));
 }
 
 /* ✅ Submit */
@@ -295,7 +296,7 @@ function submitExam() {
         })
     })
     .then(r => r.json())
-    .then(d => alert("Exam Submitted"));
+    .then(() => alert("Exam Submitted"));
 }
 
 </script>
