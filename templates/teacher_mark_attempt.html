@@ -1,155 +1,122 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Mark — {{ exam_id }} / {{ student }}</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<title>Mark Attempt — {{ student }} ({{ exam_id }})</title>
 
-  <style>
-    body{font-family:Arial;margin:16px}
-    .qbox{border:1px solid #ddd;padding:12px;margin-bottom:16px;border-radius:6px;background:#fafafa}
-    .diagram-wrap{position:relative;width:640px;max-width:100%;border:1px solid #ccc;background:#fff}
-    .diagram-wrap img.bg{display:block;width:100%;height:auto}
-    .diagram-wrap img.overlay{position:absolute;left:0;top:0;width:100%;height:auto;pointer-events:none;opacity:0.95}
-    textarea{width:100%;min-height:80px}
-    .controls{display:flex;gap:8px;margin-top:10px;align-items:center}
-    .small{font-size:0.9rem;color:#555}
-    .btn{padding:8px 12px;background:#1f6feb;color:#fff;border-radius:4px;text-decoration:none;border:none;cursor:pointer}
-    .btn.secondary{background:#666}
-    label{display:block;margin-top:8px}
-    input[type="number"]{width:90px;padding:6px}
-  </style>
+<style>
+body {
+    font-family: Arial;
+    margin: 20px;
+}
+
+.question-box {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+}
+
+img {
+    max-width: 500px;
+    display: block;
+    margin: 10px 0;
+}
+
+input[type=number] {
+    width: 80px;
+    padding: 5px;
+    font-size: 16px;
+}
+
+textarea {
+    width: 100%;
+    height: 80px;
+    margin-top: 10px;
+}
+button {
+    padding: 8px 14px;
+    font-size: 16px;
+    cursor: pointer;
+}
+</style>
 </head>
 
 <body>
 
-<h2>Marking — {{ exam_meta.title if exam_meta.title else exam_id }}</h2>
-<p>Student: <strong>{{ student }}</strong></p>
-<p><a href="/teacher/attempts/{{ exam_id }}">← Back to attempts</a></p>
-
-<form id="gradingForm" onsubmit="return saveMarks();">
+<h2>Marking — {{ student }} (Exam: {{ exam_id }})</h2>
+<p><a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a></p>
 
 {% for q in questions %}
 
-  {% set idx = loop.index %}
-  {% set ans = attempt.get('answers', {}).get(idx|string, {}) %}
+<div class="question-box">
 
-  <div class="qbox">
+    <h3>Question {{ q.question_index }}</h3>
 
-    <h3>Question {{ idx }}</h3>
+    <b>Question:</b>
+    <p>{{ q.question_text }}</p>
 
-    <div style="display:flex;gap:16px;flex-wrap:wrap">
-
-      <div class="diagram-wrap">
-	
-    {% if q.answer_diagram and q.answer_diagram.enabled %}
-
-        <!-- Background diagram for drawing -->
-        <img class="bg"
-             src="/exam_file/{{ exam_id }}/{{ q.answer_diagram.src }}">
-
-        <!-- Student drawing -->
-        {% if ans.overlay_file %}
-            <img class="overlay"
-                 src="/drawing/{{ ans.overlay_file }}">
-        {% endif %}
-
-    {% else %}
-        <div style="padding:28px">No drawing for this question</div>
+    {% if q.answer_diagram %}
+        <b>Base Diagram:</b>
+        <img src="{{ q.answer_diagram }}">
     {% endif %}
 
+    {% for ans in answers %}
+        {% if ans.question_index == q.question_index %}
 
-      </div>
+            {% if ans.overlay_image %}
+                <b>Student Drawing:</b>
+                <img src="{{ ans.overlay_image }}">
+            {% endif %}
 
-      <div style="flex:1;min-width:260px;">
+            <b>Student Answer:</b>
+            <p>{{ ans.answer_text }}</p>
 
-        <label>Student answer</label>
-        <div class="small" style="white-space:pre-wrap;padding:8px;border:1px solid #eee;background:#fff">
-          {{ ans.answerText or "(no answer saved)" }}
-        </div>
+        {% endif %}
+    {% endfor %}
 
-        <label>Your marks</label>
-        <input type="number" step="0.5" id="mark_{{ idx }}">
+    <label>Marks:</label>
+    <input type="number"
+           id="marks_{{ q.question_index }}"
+           min="0">
 
-        <label>Comment</label>
-        <textarea id="comment_{{ idx }}"></textarea>
-
-      </div>
-
-    </div>
-
-  </div>
+</div>
 
 {% endfor %}
 
-<label>Overall comment</label>
+<h3>Overall Comment</h3>
 <textarea id="overall_comment"></textarea>
 
-<div class="controls">
-  <button type="submit" class="btn">Save grading</button>
-</div>
+<br><br>
 
-</form>
+<button onclick="saveMarks()">💾 Save Marks</button>
 
 <script>
-const examId = "{{ exam_id }}";
-const student = "{{ student }}";
-const attempt = {{ attempt|tojson }};
-const questions = {{ questions|tojson }};
 
-async function saveMarks(){
+function saveMarks() {
 
     const marks = {};
 
-    for (let i = 0; i < questions.length; i++) {
-        const idx = i + 1;
-
-        const score = document.getElementById("mark_" + idx).value;
-        const comment = document.getElementById("comment_" + idx).value;
-
-        if (score || comment) {
-            marks[String(idx)] = { score, comment };
-        }
-    }
-
-    const payload = {
-        marks,
-        overall_comment: document.getElementById("overall_comment").value
-    };
-
-    const res = await fetch(`/teacher/save_marks/${examId}/${student}`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
+    document.querySelectorAll("input[type=number]").forEach(input => {
+        const qindex = input.id.split("_")[1];
+        marks[qindex] = input.value;
     });
 
-    const j = await res.json();
+    fetch("/teacher/save_marks/{{ exam_id }}/{{ student }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            marks: marks,
+            overall_comment: document.getElementById("overall_comment").value
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        alert("Marks Saved Successfully");
+    });
 
-    if (j.status === "success") {
-        alert("Saved");
-    } else {
-        alert("Error saving");
-    }
-
-    return false;
 }
 
-// Restore existing marks if present
-if (attempt.grading && attempt.grading.marks) {
-
-    for (const [k, v] of Object.entries(attempt.grading.marks)) {
-        const idx = Number(k);
-
-        if (document.getElementById("mark_" + idx))
-            document.getElementById("mark_" + idx).value = v.score || '';
-
-        if (document.getElementById("comment_" + idx))
-            document.getElementById("comment_" + idx).value = v.comment || '';
-    }
-
-    if (attempt.grading.overall_comment)
-        document.getElementById("overall_comment").value = attempt.grading.overall_comment;
-}
 </script>
 
 </body>

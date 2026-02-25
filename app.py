@@ -60,6 +60,8 @@ class Attempt(db.Model):
     student_name = db.Column(db.Text)
     submitted = db.Column(db.Boolean, default=False)
 
+    grading_json = db.Column(db.Text)   # ✅ ADD THIS LINE
+
 
 class Answer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -304,6 +306,51 @@ def teacher_review(exam_id, student):
         answers=answers,
         questions=questions
     )
+@app.route("/teacher/mark/<exam_id>/<student>")
+def teacher_mark_attempt(exam_id, student):
+
+    attempt = Attempt.query.filter_by(
+        exam_id=exam_id,
+        student_name=student
+    ).first()
+
+    if not attempt:
+        return "Attempt not found", 404
+
+    answers = Answer.query.filter_by(attempt_id=attempt.id)\
+        .order_by(Answer.question_index).all()
+
+    questions = Question.query.filter_by(exam_id=exam_id)\
+        .order_by(Question.question_index).all()
+
+    return render_template(
+        "teacher_mark_attempt.html",
+        exam_id=exam_id,
+        student=student,
+        answers=answers,
+        questions=questions
+    )
+@app.route("/teacher/save_marks/<exam_id>/<student>", methods=["POST"])
+def teacher_save_marks(exam_id, student):
+
+    payload = request.get_json()
+
+    attempt = Attempt.query.filter_by(
+        exam_id=exam_id,
+        student_name=student
+    ).first()
+
+    if not attempt:
+        return jsonify({"status": "error"})
+
+    attempt.grading_json = json.dumps({
+        "marks": payload.get("marks", {}),
+        "overall_comment": payload.get("overall_comment", "")
+    })
+
+    db.session.commit()
+
+    return jsonify({"status": "success"})
 
 
 # ---------------------------------------
