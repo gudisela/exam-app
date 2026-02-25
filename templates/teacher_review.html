@@ -1,0 +1,24 @@
+<h2>Review — {{ student }} ({{ exam_id }})</h2>
+
+{% for q in questions %}
+    <div style="border:1px solid #ccc; padding:10px; margin-bottom:20px;">
+
+        <h3>Question {{ q.question_index }}</h3>
+        <p>{{ q.question_text }}</p>
+
+        {% for ans in answers %}
+            {% if ans.question_index == q.question_index %}
+                
+                <b>Answer:</b>
+                <p>{{ ans.answer_text }}</p>
+
+                {% if ans.overlay_image %}
+                    <b>Drawing:</b><br>
+                    <img src="{{ ans.overlay_image }}" width="400">
+                {% endif %}
+
+            {% endif %}
+        {% endfor %}
+
+    </div>
+{% endfor %}

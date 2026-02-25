@@ -269,6 +269,41 @@ def exam_submit():
     db.session.commit()
 
     return jsonify({"status": "submitted"})
+@app.route("/teacher/attempts/<exam_id>")
+def teacher_attempts(exam_id):
+
+    attempts = Attempt.query.filter_by(exam_id=exam_id).all()
+
+    return render_template(
+        "teacher_attempts.html",
+        exam_id=exam_id,
+        attempts=attempts
+    )
+@app.route("/teacher/review/<exam_id>/<student>")
+def teacher_review(exam_id, student):
+
+    attempt = Attempt.query.filter_by(
+        exam_id=exam_id,
+        student_name=student
+    ).first()
+
+    if not attempt:
+        return "Attempt not found", 404
+
+    answers = Answer.query.filter_by(attempt_id=attempt.id)\
+        .order_by(Answer.question_index).all()
+
+    questions = Question.query.filter_by(exam_id=exam_id)\
+        .order_by(Question.question_index).all()
+
+    return render_template(
+        "teacher_review.html",
+        exam_id=exam_id,
+        student=student,
+        answers=answers,
+        questions=questions
+    )
+
 
 # ---------------------------------------
 # RUN
