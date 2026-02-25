@@ -53,7 +53,6 @@ class EmbeddedDiagram(db.Model):
     image_url = db.Column(db.Text)
 
 
-# ✅ NEW — Attempt Table
 class Attempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     exam_id = db.Column(db.String(50),
@@ -62,7 +61,6 @@ class Attempt(db.Model):
     submitted = db.Column(db.Boolean, default=False)
 
 
-# ✅ NEW — Answer Table
 class Answer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     attempt_id = db.Column(db.Integer,
@@ -70,7 +68,6 @@ class Answer(db.Model):
     question_index = db.Column(db.Integer)
     answer_text = db.Column(db.Text)
     overlay_image = db.Column(db.Text)
-
 
 # ---------------------------------------
 # INIT DATABASE
@@ -81,7 +78,6 @@ def initdb():
     db.create_all()
     return "Database initialized"
 
-
 # ---------------------------------------
 # HOME
 # ---------------------------------------
@@ -90,7 +86,6 @@ def initdb():
 def index():
     return redirect("/teacher/create_exam")
 
-
 # ---------------------------------------
 # TEACHER — CREATE EXAM
 # ---------------------------------------
@@ -98,7 +93,6 @@ def index():
 @app.route("/teacher/create_exam")
 def teacher_create_exam():
     return render_template("create_exam.html")
-
 
 # ---------------------------------------
 # TEACHER — SAVE EXAM
@@ -136,7 +130,6 @@ def teacher_save_exam():
             db.session.add(q)
             db.session.flush()
 
-            # Embedded diagrams
             for subkey in sorted(request.form.keys()):
 
                 if subkey.startswith(f"embedded_{qnum}_"):
@@ -153,7 +146,6 @@ def teacher_save_exam():
                             image_url=upload_result["secure_url"]
                         ))
 
-            # Answer diagram
             answer_dataurl = request.form.get(f"answer_diagram_{qnum}")
             answer_enabled = request.form.get(f"answer_enabled_{qnum}")
 
@@ -170,7 +162,6 @@ def teacher_save_exam():
     db.session.commit()
 
     return redirect(f"/exam/start/{exam_id}")
-
 
 # ---------------------------------------
 # STUDENT — START EXAM
@@ -198,9 +189,8 @@ def start_exam(exam_id):
         questions=questions
     )
 
-
 # ---------------------------------------
-# ✅ AUTOSAVE ANSWER
+# AUTOSAVE ANSWER
 # ---------------------------------------
 
 @app.route("/exam/autosave", methods=["POST"])
@@ -234,39 +224,29 @@ def exam_autosave():
 
     overlay_url = None
 
-    # ✅ Upload drawing to Cloudinary
     if overlay and overlay.startswith("data:image"):
 
-        img_data = base64.b64decode(overlay.split(",")[1])
+        print("\n--- OVERLAY RECEIVED ---")
+        print("Length:", len(overlay))
 
+        img_data = base64.b64decode(overlay.split(",")[1])
         upload_result = cloudinary.uploader.upload(img_data)
 
         overlay_url = upload_result["secure_url"]
 
+        print("\n--- CLOUDINARY UPLOAD OK ---")
+        print("Overlay URL:", overlay_url)
+
     answer.answer_text = answer_text
-    answer.overlay_image = overlay_url   # ✅ STORE URL, NOT BASE64
+    answer.overlay_image = overlay_url
 
     db.session.add(answer)
     db.session.commit()
 
     return jsonify({"status": "saved"})
 
-if overlay and overlay.startswith("data:image"):
-
-    print("\n--- OVERLAY RECEIVED ---")
-    print("Length:", len(overlay))
-
-    img_data = base64.b64decode(overlay.split(",")[1])
-
-    upload_result = cloudinary.uploader.upload(img_data)
-
-    overlay_url = upload_result["secure_url"]
-
-    print("\n--- CLOUDINARY UPLOAD OK ---")
-    print("Overlay URL:", overlay_url)
-
 # ---------------------------------------
-# ✅ FINAL SUBMIT
+# FINAL SUBMIT
 # ---------------------------------------
 
 @app.route("/exam/submit", methods=["POST"])
@@ -289,7 +269,6 @@ def exam_submit():
     db.session.commit()
 
     return jsonify({"status": "submitted"})
-
 
 # ---------------------------------------
 # RUN
