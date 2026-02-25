@@ -33,10 +33,25 @@
     <p><b>Question:</b> {{ q.question_text }}</p>
 
     <!-- ✅ BASE DIAGRAM -->
-    {% if q.answer_diagram %}
-        <p><b>Base Diagram:</b></p>
-        <img src="{{ q.answer_diagram }}">
-    {% endif %}
+    
+{% if q.answer_diagram %}
+    <div style="position: relative; display: inline-block;">
+
+        <!-- Base Diagram -->
+        <img src="{{ q.answer_diagram }}" style="max-width: 500px; display:block;">
+
+        <!-- Student Overlay -->
+        {% if a.overlay_image %}
+            <img src="{{ a.overlay_image }}"
+                 style="position:absolute;
+                        left:0;
+                        top:0;
+                        max-width:500px;
+                        pointer-events:none;">
+        {% endif %}
+
+    </div>
+{% endif %}
 
     <!-- ✅ FIND MATCHING ANSWER -->
     {% for a in answers %}
