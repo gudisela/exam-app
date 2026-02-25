@@ -251,6 +251,20 @@ def exam_autosave():
 
     return jsonify({"status": "saved"})
 
+if overlay and overlay.startswith("data:image"):
+
+    print("\n--- OVERLAY RECEIVED ---")
+    print("Length:", len(overlay))
+
+    img_data = base64.b64decode(overlay.split(",")[1])
+
+    upload_result = cloudinary.uploader.upload(img_data)
+
+    overlay_url = upload_result["secure_url"]
+
+    print("\n--- CLOUDINARY UPLOAD OK ---")
+    print("Overlay URL:", overlay_url)
+
 # ---------------------------------------
 # ✅ FINAL SUBMIT
 # ---------------------------------------
