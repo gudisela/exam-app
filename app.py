@@ -275,10 +275,11 @@ def teacher_attempts(exam_id):
     attempts = Attempt.query.filter_by(exam_id=exam_id).all()
 
     return render_template(
-        "teacher_attempts.html",
-        exam_id=exam_id,
-        attempts=attempts
-    )
+    "teacher_marking_list.html",
+    exam_id=exam_id,
+    attempts=attempts
+)
+
 @app.route("/teacher/review/<exam_id>/<student>")
 def teacher_review(exam_id, student):
 
