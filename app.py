@@ -282,30 +282,25 @@ def teacher_attempts(exam_id):
     attempts=attempts
 )
 
-@app.route("/teacher/review/<exam_id>/<student>")
-def teacher_review(exam_id, student):
+@app.route("/teacher/review/<int:attempt_id>")
+def teacher_review(attempt_id):
 
-    attempt = Attempt.query.filter_by(
-        exam_id=exam_id,
-        student_name=student
-    ).first()
-
-    if not attempt:
-        return "Attempt not found", 404
+    attempt = Attempt.query.get_or_404(attempt_id)
 
     answers = Answer.query.filter_by(attempt_id=attempt.id)\
         .order_by(Answer.question_index).all()
 
-    questions = Question.query.filter_by(exam_id=exam_id)\
+    questions = Question.query.filter_by(exam_id=attempt.exam_id)\
         .order_by(Question.question_index).all()
 
     return render_template(
         "teacher_review.html",
-        exam_id=exam_id,
-        student=student,
+        exam_id=attempt.exam_id,
+        student=attempt.student_name,
         answers=answers,
         questions=questions
     )
+
 @app.route("/teacher/mark/<exam_id>/<student>")
 def teacher_mark_attempt(exam_id, student):
 
