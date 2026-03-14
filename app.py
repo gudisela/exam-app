@@ -287,18 +287,23 @@ def teacher_review(attempt_id):
 
     attempt = Attempt.query.get_or_404(attempt_id)
 
-    answers = Answer.query.filter_by(attempt_id=attempt.id)\
-        .order_by(Answer.question_index).all()
+    questions = Question.query.filter_by(
+        exam_id=attempt.exam_id
+    ).order_by(Question.question_index).all()
 
-    questions = Question.query.filter_by(exam_id=attempt.exam_id)\
-        .order_by(Question.question_index).all()
+    answers = Answer.query.filter_by(
+        attempt_id=attempt.id
+    ).all()
+
+    # Create lookup dictionary
+    answer_map = {a.question_index: a for a in answers}
 
     return render_template(
         "teacher_review.html",
         exam_id=attempt.exam_id,
         student=attempt.student_name,
-        answers=answers,
-        questions=questions
+        questions=questions,
+        answer_map=answer_map
     )
 
 @app.route("/teacher/mark/<exam_id>/<student>")

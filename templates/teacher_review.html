@@ -32,27 +32,38 @@
 
     <p><b>Question:</b> {{ q.question_text }}</p>
 
-    <!-- ✅ BASE DIAGRAM -->
-    
-{% if q.answer_diagram %}
+    {% set a = answer_map.get(q.question_index) %}
+
+    <!-- Base Diagram -->
+    {% if q.answer_diagram %}
     <div style="position: relative; display: inline-block;">
 
-        <!-- Base Diagram -->
-        <img src="{{ q.answer_diagram }}" style="max-width: 500px; display:block;">
+        <img src="{{ q.answer_diagram }}"
+             style="max-width: 500px; display:block;">
 
         <!-- Student Overlay -->
-        {% if a.overlay_image %}
-            <img src="{{ a.overlay_image }}"
-                 style="position:absolute;
-                        left:0;
-                        top:0;
-                        max-width:500px;
-                        pointer-events:none;">
+        {% if a and a.overlay_image %}
+        <img src="{{ a.overlay_image }}"
+             style="position:absolute;
+                    left:0;
+                    top:0;
+                    max-width:500px;
+                    pointer-events:none;">
         {% endif %}
 
     </div>
-{% endif %}
+    {% endif %}
 
+    <!-- Student Answer -->
+    {% if a %}
+        <p><b>Answer:</b> {{ a.answer_text }}</p>
+    {% else %}
+        <p><i>No answer submitted.</i></p>
+    {% endif %}
+
+</div>
+
+{% endfor %}
     <!-- ✅ FIND MATCHING ANSWER -->
     {% for a in answers %}
         {% if a.question_index == q.question_index %}
