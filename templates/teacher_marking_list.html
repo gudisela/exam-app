@@ -22,15 +22,13 @@
         <th>Action</th>
       </tr>
 
-      {% for a in attempts %}
+      {% for s in attempts %}
       <tr>
-        <td>{{ a.student_name }}</td>
-        <td>{{ a.submitted }}</td>
+        <td>{{ s.student_name }}</td>
+        <td>{{ s.submitted }}</td>
         <td>
-          <a class="button"
-             href="/teacher/review/{{ exam_id }}/{{ a.student_name }}">
-             Review
-          </a>
+          
+	<a class="button" href="/teacher/review/{{ s.id }}">Review</a>
         </td>
       </tr>
       {% endfor %}
