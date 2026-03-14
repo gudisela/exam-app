@@ -1,24 +1,30 @@
 <!doctype html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>Review — {{ student }} ({{ exam_id }})</title>
+<meta charset="utf-8">
+<title>Review — {{ student }} ({{ exam_id }})</title>
 
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        .question-box {
-            border: 1px solid #ddd;
-            padding: 12px;
-            margin-bottom: 25px;
-            border-radius: 6px;
-        }
-        img {
-            max-width: 500px;
-            display: block;
-            margin: 8px 0;
-        }
-    </style>
+<style>
+body{
+    font-family: Arial;
+    margin: 20px;
+}
+
+.question-box{
+    border:1px solid #ddd;
+    padding:12px;
+    margin-bottom:25px;
+    border-radius:6px;
+}
+
+img{
+    max-width:500px;
+    display:block;
+    margin:8px 0;
+}
+</style>
 </head>
+
 <body>
 
 <h2>Review — {{ student }} ({{ exam_id }})</h2>
@@ -37,11 +43,11 @@
 {% if q.answer_diagram %}
 <div style="position:relative; display:inline-block;">
 
-<img src="{{ q.answer_diagram }}" style="max-width:500px; display:block;">
+<img src="{{ q.answer_diagram }}">
 
 {% if a and a.overlay_image %}
 <img src="{{ a.overlay_image }}"
-     style="position:absolute; left:0; top:0; max-width:500px;">
+     style="position:absolute; left:0; top:0;">
 {% endif %}
 
 </div>
@@ -52,41 +58,12 @@
 {% if a %}
 <p>{{ a.answer_text }}</p>
 {% else %}
-<p>No answer submitted</p>
+<p><i>No answer submitted</i></p>
 {% endif %}
 
 </div>
 
 <hr>
-
-{% endfor %}
-
-    <!-- Student Answer -->
-    {% if a %}
-        <p><b>Answer:</b> {{ a.answer_text }}</p>
-    {% else %}
-        <p><i>No answer submitted.</i></p>
-    {% endif %}
-
-</div>
-
-{% endfor %}
-    <!-- ✅ FIND MATCHING ANSWER -->
-    {% for a in answers %}
-        {% if a.question_index == q.question_index %}
-
-            {% if a.overlay_image %}
-                <p><b>Student Drawing:</b></p>
-                <img src="{{ a.overlay_image }}">
-            {% endif %}
-
-            <p><b>Answer:</b></p>
-            <div>{{ a.answer_text }}</div>
-
-        {% endif %}
-    {% endfor %}
-
-</div>
 
 {% endfor %}
 
