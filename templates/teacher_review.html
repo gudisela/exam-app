@@ -28,31 +28,38 @@
 
 <div class="question-box">
 
-    <h3>Question {{ q.question_index }}</h3>
+<h3>Question {{ q.question_index }}</h3>
 
-    <p><b>Question:</b> {{ q.question_text }}</p>
+<p><b>Question:</b> {{ q.question_text }}</p>
 
-    {% set a = answer_map.get(q.question_index) %}
+{% set a = answer_map.get(q.question_index) %}
 
-    <!-- Base Diagram -->
-    {% if q.answer_diagram %}
-    <div style="position: relative; display: inline-block;">
+{% if q.answer_diagram %}
+<div style="position:relative; display:inline-block;">
 
-        <img src="{{ q.answer_diagram }}"
-             style="max-width: 500px; display:block;">
+<img src="{{ q.answer_diagram }}" style="max-width:500px; display:block;">
 
-        <!-- Student Overlay -->
-        {% if a and a.overlay_image %}
-        <img src="{{ a.overlay_image }}"
-             style="position:absolute;
-                    left:0;
-                    top:0;
-                    max-width:500px;
-                    pointer-events:none;">
-        {% endif %}
+{% if a and a.overlay_image %}
+<img src="{{ a.overlay_image }}"
+     style="position:absolute; left:0; top:0; max-width:500px;">
+{% endif %}
 
-    </div>
-    {% endif %}
+</div>
+{% endif %}
+
+<p><b>Answer:</b></p>
+
+{% if a %}
+<p>{{ a.answer_text }}</p>
+{% else %}
+<p>No answer submitted</p>
+{% endif %}
+
+</div>
+
+<hr>
+
+{% endfor %}
 
     <!-- Student Answer -->
     {% if a %}
