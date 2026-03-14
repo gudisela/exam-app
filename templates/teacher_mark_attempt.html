@@ -33,6 +33,14 @@ body{
     top:0;
 }
 
+/* NEW: annotation canvas */
+.diagram canvas{
+    position:absolute;
+    left:0;
+    top:0;
+    cursor:crosshair;
+}
+
 input[type=number]{
     width:80px;
     padding:5px;
@@ -50,6 +58,12 @@ button{
     font-size:16px;
     cursor:pointer;
 }
+
+/* annotation toolbar */
+.toolbar button{
+    margin-right:10px;
+    margin-bottom:10px;
+}
 </style>
 </head>
 
@@ -60,6 +74,20 @@ button{
 <p>
 <a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a>
 </p>
+
+<!-- NEW: Annotation toolbar -->
+<div class="toolbar">
+
+<b>Annotation Tools:</b>
+
+<button onclick="setTool('tick')">✓ Tick</button>
+<button onclick="setTool('cross')">✗ Cross</button>
+<button onclick="setTool('underline')">Underline</button>
+<button onclick="setTool('highlight')">Highlight</button>
+<button onclick="setTool('draw')">Free Draw</button>
+<button onclick="clearCanvas()">Clear</button>
+
+</div>
 
 
 {% for q in questions %}
@@ -79,11 +107,14 @@ button{
 
 <div class="diagram">
 
-<img src="{{ q.answer_diagram }}">
+<img src="{{ q.answer_diagram }}" id="base_{{ q.question_index }}">
 
 {% if a and a.overlay_image %}
 <img src="{{ a.overlay_image }}" class="overlay">
 {% endif %}
+
+<!-- NEW: annotation canvas -->
+<canvas id="canvas_{{ q.question_index }}"></canvas>
 
 </div>
 
@@ -126,6 +157,75 @@ step="0.5">
 
 
 <script>
+
+/* -----------------------
+ANNOTATION SYSTEM
+----------------------- */
+
+let tool="draw";
+
+function setTool(t){
+    tool=t;
+}
+
+const canvases=document.querySelectorAll("canvas");
+
+canvases.forEach(canvas=>{
+
+    const ctx=canvas.getContext("2d");
+    const img=canvas.previousElementSibling;
+
+    canvas.width=img.width;
+    canvas.height=img.height;
+
+    canvas.addEventListener("click",function(e){
+
+        const rect=canvas.getBoundingClientRect();
+        const x=e.clientX-rect.left;
+        const y=e.clientY-rect.top;
+
+        if(tool==="tick"){
+            ctx.font="30px Arial";
+            ctx.fillStyle="green";
+            ctx.fillText("✓",x,y);
+        }
+
+        if(tool==="cross"){
+            ctx.font="30px Arial";
+            ctx.fillStyle="red";
+            ctx.fillText("✗",x,y);
+        }
+
+        if(tool==="underline"){
+            ctx.beginPath();
+            ctx.moveTo(x-20,y);
+            ctx.lineTo(x+40,y);
+            ctx.strokeStyle="blue";
+            ctx.lineWidth=3;
+            ctx.stroke();
+        }
+
+        if(tool==="highlight"){
+            ctx.fillStyle="rgba(255,255,0,0.4)";
+            ctx.fillRect(x-30,y-10,80,20);
+        }
+
+    });
+
+});
+
+
+function clearCanvas(){
+    canvases.forEach(c=>{
+        const ctx=c.getContext("2d");
+        ctx.clearRect(0,0,c.width,c.height);
+    });
+}
+
+
+/* -----------------------
+SAVE MARKS
+----------------------- */
 
 function saveMarks(){
 
