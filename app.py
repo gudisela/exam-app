@@ -374,7 +374,40 @@ def teacher_mark(attempt_id):
         questions=questions,
         answer_map=answer_map
     )
+@app.route("/student/results/<int:attempt_id>")
+def student_results(attempt_id):
 
+    attempt = Attempt.query.get_or_404(attempt_id)
+
+    questions = Question.query.filter_by(
+        exam_id=attempt.exam_id
+    ).order_by(Question.question_index).all()
+
+    answers = Answer.query.filter_by(
+        attempt_id=attempt_id
+    ).all()
+
+    # create answer map
+    answer_map = {a.question_index: a for a in answers}
+
+    import json
+
+    grading = {}
+    if attempt.grading_json:
+        grading = json.loads(attempt.grading_json)
+
+    marks = grading.get("marks", {})
+    overall_comment = grading.get("overall_comment", "")
+
+    return render_template(
+        "student_results.html",
+        student=attempt.student_name,
+        exam_id=attempt.exam_id,
+        questions=questions,
+        answer_map=answer_map,
+        marks=marks,
+        overall_comment=overall_comment
+    )
 # ---------------------------------------
 # RUN
 # ---------------------------------------
