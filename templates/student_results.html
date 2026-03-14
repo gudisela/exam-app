@@ -55,27 +55,31 @@ img{
 
 <p>{{ q.question_text }}</p>
 
+
 {% if q.answer_diagram %}
-<img src="{{ q.answer_diagram }}">
-{% endif %}
 
-{% if a and a.overlay_image %}
-<img src="{{ a.overlay_image }}">
-{% endif %}
+<div style="position:relative; display:inline-block;">
 
-<p><b>Your Answer:</b></p>
+    <!-- Base Diagram -->
+    <img src="{{ q.answer_diagram }}"
+         style="max-width:500px; display:block;">
 
-{% if a %}
-<p>{{ a.answer_text }}</p>
-{% else %}
-<p>No answer submitted</p>
-{% endif %}
-
-<p><b>Marks:</b> {{ m }}</p>
+    <!-- Student Overlay -->
+    {% if a and a.overlay_image %}
+    <img src="{{ a.overlay_image }}"
+         style="
+            position:absolute;
+            left:0;
+            top:0;
+            width:100%;
+            height:100%;
+            pointer-events:none;
+         ">
+    {% endif %}
 
 </div>
 
-{% endfor %}
+{% endif %}
 
 <hr>
 
