@@ -173,14 +173,24 @@ const canvases=document.querySelectorAll("canvas");
 canvases.forEach(canvas=>{
 
     const ctx=canvas.getContext("2d");
+
     const img=canvas.previousElementSibling;
 
-    canvas.width=img.width;
-    canvas.height=img.height;
+    function resizeCanvas(){
+        canvas.width=img.clientWidth;
+        canvas.height=img.clientHeight;
+    }
+
+    if(img.complete){
+        resizeCanvas();
+    }else{
+        img.onload=resizeCanvas;
+    }
 
     canvas.addEventListener("click",function(e){
 
         const rect=canvas.getBoundingClientRect();
+
         const x=e.clientX-rect.left;
         const y=e.clientY-rect.top;
 
@@ -210,47 +220,22 @@ canvases.forEach(canvas=>{
             ctx.fillRect(x-30,y-10,80,20);
         }
 
+        if(tool==="draw"){
+            ctx.fillStyle="blue";
+            ctx.beginPath();
+            ctx.arc(x,y,3,0,2*Math.PI);
+            ctx.fill();
+        }
+
     });
 
 });
-
 
 function clearCanvas(){
     canvases.forEach(c=>{
         const ctx=c.getContext("2d");
         ctx.clearRect(0,0,c.width,c.height);
     });
-}
-
-
-/* -----------------------
-SAVE MARKS
------------------------ */
-
-function saveMarks(){
-
-    const marks={};
-
-    document.querySelectorAll("input[type=number]").forEach(input=>{
-        const qindex=input.id.split("_")[1];
-        marks[qindex]=input.value;
-    });
-
-    fetch("/teacher/save_marks/{{ attempt_id }}",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            marks:marks,
-            overall_comment:document.getElementById("overall_comment").value
-        })
-    })
-    .then(r=>r.json())
-    .then(d=>{
-        alert("Marks saved successfully");
-    });
-
 }
 
 </script>
