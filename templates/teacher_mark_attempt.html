@@ -5,39 +5,50 @@
 <title>Mark Attempt — {{ student }} ({{ exam_id }})</title>
 
 <style>
-body {
+body{
     font-family: Arial;
-    margin: 20px;
+    margin:20px;
 }
 
-.question-box {
-    border: 1px solid #ccc;
-    padding: 15px;
-    margin-bottom: 25px;
-    border-radius: 8px;
+.question-box{
+    border:1px solid #ccc;
+    padding:15px;
+    margin-bottom:25px;
+    border-radius:8px;
 }
 
-img {
-    max-width: 500px;
-    display: block;
-    margin: 10px 0;
+.diagram{
+    position:relative;
+    display:inline-block;
 }
 
-input[type=number] {
-    width: 80px;
-    padding: 5px;
-    font-size: 16px;
+.diagram img{
+    max-width:500px;
+    display:block;
 }
 
-textarea {
-    width: 100%;
-    height: 80px;
-    margin-top: 10px;
+.diagram .overlay{
+    position:absolute;
+    left:0;
+    top:0;
 }
-button {
-    padding: 8px 14px;
-    font-size: 16px;
-    cursor: pointer;
+
+input[type=number]{
+    width:80px;
+    padding:5px;
+    font-size:16px;
+}
+
+textarea{
+    width:100%;
+    height:80px;
+    margin-top:10px;
+}
+
+button{
+    padding:8px 14px;
+    font-size:16px;
+    cursor:pointer;
 }
 </style>
 </head>
@@ -45,74 +56,99 @@ button {
 <body>
 
 <h2>Marking — {{ student }} (Exam: {{ exam_id }})</h2>
-<p><a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a></p>
+
+<p>
+<a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a>
+</p>
+
 
 {% for q in questions %}
 
+{% set a = answer_map.get(q.question_index) %}
+
 <div class="question-box">
 
-    <h3>Question {{ q.question_index }}</h3>
+<h3>Question {{ q.question_index }}</h3>
 
-    <b>Question:</b>
-    <p>{{ q.question_text }}</p>
+<b>Question:</b>
+<p>{{ q.question_text }}</p>
 
-    {% if q.answer_diagram %}
-        <b>Base Diagram:</b>
-        <img src="{{ q.answer_diagram }}">
-    {% endif %}
 
-    {% for ans in answers %}
-        {% if ans.question_index == q.question_index %}
+{% if q.answer_diagram %}
+<b>Diagram:</b>
 
-            {% if ans.overlay_image %}
-                <b>Student Drawing:</b>
-                <img src="{{ ans.overlay_image }}">
-            {% endif %}
+<div class="diagram">
 
-            <b>Student Answer:</b>
-            <p>{{ ans.answer_text }}</p>
+<img src="{{ q.answer_diagram }}">
 
-        {% endif %}
-    {% endfor %}
+{% if a and a.overlay_image %}
+<img src="{{ a.overlay_image }}" class="overlay">
+{% endif %}
 
-    <label>Marks:</label>
-    <input type="number"
-           id="marks_{{ q.question_index }}"
-           min="0">
+</div>
+
+{% endif %}
+
+
+<b>Student Answer:</b>
+
+{% if a %}
+<p>{{ a.answer_text }}</p>
+{% else %}
+<p><i>No answer submitted</i></p>
+{% endif %}
+
+
+<br>
+
+<label>Marks:</label>
+
+<input
+type="number"
+id="marks_{{ q.question_index }}"
+min="0"
+step="0.5">
 
 </div>
 
 {% endfor %}
 
+
+
 <h3>Overall Comment</h3>
+
 <textarea id="overall_comment"></textarea>
+
 
 <br><br>
 
 <button onclick="saveMarks()">💾 Save Marks</button>
 
+
 <script>
 
-function saveMarks() {
+function saveMarks(){
 
-    const marks = {};
+    const marks={};
 
-    document.querySelectorAll("input[type=number]").forEach(input => {
-        const qindex = input.id.split("_")[1];
-        marks[qindex] = input.value;
+    document.querySelectorAll("input[type=number]").forEach(input=>{
+        const qindex=input.id.split("_")[1];
+        marks[qindex]=input.value;
     });
 
-    fetch("/teacher/save_marks/{{ exam_id }}/{{ student }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            marks: marks,
-            overall_comment: document.getElementById("overall_comment").value
+    fetch("/teacher/save_marks/{{ attempt_id }}",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            marks:marks,
+            overall_comment:document.getElementById("overall_comment").value
         })
     })
-    .then(r => r.json())
-    .then(d => {
-        alert("Marks Saved Successfully");
+    .then(r=>r.json())
+    .then(d=>{
+        alert("Marks saved successfully");
     });
 
 }

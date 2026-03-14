@@ -330,18 +330,14 @@ def teacher_mark_attempt(exam_id, student):
         answers=answers,
         questions=questions
     )
-@app.route("/teacher/save_marks/<exam_id>/<student>", methods=["POST"])
-def teacher_save_marks(exam_id, student):
+@app.route("/teacher/save_marks/<int:attempt_id>", methods=["POST"])
+def teacher_save_marks(attempt_id):
 
     payload = request.get_json()
 
-    attempt = Attempt.query.filter_by(
-        exam_id=exam_id,
-        student_name=student
-    ).first()
+    attempt = Attempt.query.get_or_404(attempt_id)
 
-    if not attempt:
-        return jsonify({"status": "error"})
+    import json
 
     attempt.grading_json = json.dumps({
         "marks": payload.get("marks", {}),
