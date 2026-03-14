@@ -24,11 +24,6 @@ img{
     display:block;
 }
 
-.total{
-    font-size:22px;
-    font-weight:bold;
-}
-
 </style>
 
 </head>
@@ -42,8 +37,6 @@ img{
 
 <hr>
 
-{% set total = 0 %}
-
 {% for q in questions %}
 
 {% set a = answer_map.get(q.question_index) %}
@@ -55,31 +48,42 @@ img{
 
 <p>{{ q.question_text }}</p>
 
-
 {% if q.answer_diagram %}
 
 <div style="position:relative; display:inline-block;">
 
-    <!-- Base Diagram -->
-    <img src="{{ q.answer_diagram }}"
-         style="max-width:500px; display:block;">
+<img src="{{ q.answer_diagram }}"
+     style="max-width:500px; display:block;">
 
-    <!-- Student Overlay -->
-    {% if a and a.overlay_image %}
-    <img src="{{ a.overlay_image }}"
-         style="
-            position:absolute;
-            left:0;
-            top:0;
-            width:100%;
-            height:100%;
-            pointer-events:none;
-         ">
-    {% endif %}
+{% if a and a.overlay_image %}
+<img src="{{ a.overlay_image }}"
+     style="
+        position:absolute;
+        left:0;
+        top:0;
+        width:100%;
+        height:100%;
+        pointer-events:none;
+     ">
+{% endif %}
 
 </div>
 
 {% endif %}
+
+<p><b>Your Answer:</b></p>
+
+{% if a %}
+<p>{{ a.answer_text }}</p>
+{% else %}
+<p>No answer submitted</p>
+{% endif %}
+
+<p><b>Marks:</b> {{ m }}</p>
+
+</div>
+
+{% endfor %}
 
 <hr>
 
