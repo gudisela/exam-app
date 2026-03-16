@@ -282,20 +282,26 @@ def teacher_attempts(exam_id):
     attempts=attempts
 )
 
-@app.route("/teacher/review/<int:id>")
-def teacher_review(id):
+@app.route("/teacher/review/<int:attempt_id>")
+def teacher_review(attempt_id):
 
-    attempt = Attempt.query.get_or_404(id)
+    attempt = Attempt.query.get_or_404(attempt_id)
 
-    answers = {}
+    exam_id = attempt.exam_id
 
-    if attempt.answers_json:
-        answers = json.loads(attempt.answers_json)
+    questions = Question.query.filter_by(exam_id=exam_id)\
+        .order_by(Question.question_index).all()
+
+    answers = Answer.query.filter_by(attempt_id=attempt_id).all()
+
+    answer_map = {a.question_index: a for a in answers}
 
     return render_template(
         "teacher_review.html",
-        attempt=attempt,
-        answers=answers
+        exam_id=exam_id,
+        student=attempt.student_name,
+        questions=questions,
+        answer_map=answer_map
     )
 
 @app.route("/teacher/mark/<exam_id>/<student>")
@@ -340,6 +346,8 @@ def teacher_save_marks(attempt_id):
 
     return jsonify({"status": "success"})
 
+import json
+
 @app.route("/teacher/mark/<int:attempt_id>")
 def teacher_mark(attempt_id):
 
@@ -347,13 +355,17 @@ def teacher_mark(attempt_id):
 
     exam_id = attempt.exam_id
 
-    exam = Exam.query.filter_by(exam_id=exam_id).first()
-
-    questions = Question.query.filter_by(exam_id=exam_id).all()
+    questions = Question.query.filter_by(exam_id=exam_id)\
+        .order_by(Question.question_index).all()
 
     answers = Answer.query.filter_by(attempt_id=attempt_id).all()
 
     answer_map = {a.question_index: a for a in answers}
+
+    grading = {"marks": {}, "overall_comment": ""}
+
+    if attempt.grading_json:
+        grading = json.loads(attempt.grading_json)
 
     return render_template(
         "teacher_mark_attempt.html",
@@ -361,8 +373,10 @@ def teacher_mark(attempt_id):
         student=attempt.student_name,
         questions=questions,
         attempt_id=attempt_id,
-        answer_map=answer_map
+        answer_map=answer_map,
+        grading=grading
     )
+
 @app.route("/student/results/<int:attempt_id>")
 def student_results(attempt_id):
 
