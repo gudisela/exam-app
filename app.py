@@ -303,9 +303,9 @@ def teacher_review(attempt_id):
     answer_map = {a.question_index: a for a in answers}
 
     for q in questions:
-    print("QUESTION:", q.question_text)
-    print("EMBEDDED:", q.embedded_diagrams)
-    print("ANSWER:", q.answer_diagram)
+        print("QUESTION:", q.question_text)
+        print("EMBEDDED:", q.embedded_diagrams)
+        print("ANSWER:", q.answer_diagram)
 
     return render_template(
         "teacher_review.html",
