@@ -37,7 +37,7 @@ body{
 }
 
 .embedded-diagram{
-    width:400px;
+    width:500px;
     display:block;
     margin-bottom:10px;
 }
@@ -45,21 +45,34 @@ body{
 .diagram-wrap{
 position:relative;
 display:inline-block;
+width:600px;
 }
 
+.base-diagram{
+display:block;
+width:100%;
+height:auto;
+}
 .diagram-wrap canvas{
 position:absolute;
 left:0;
 top:0;
+width:100%;
+height:100%;
 cursor:crosshair;
 }
-
-.overlay{
+.student-overlay{
     position:absolute;
     top:0;
     left:0;
     width:100%;
+    height:100%;
+    object-fit:contain;
     pointer-events:none;
+}
+.question-diagrams img{
+max-width:300px;
+margin:5px;
 }
 
 /* forms */
