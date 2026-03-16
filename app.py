@@ -299,11 +299,11 @@ def teacher_review(attempt_id):
     answer_map = {a.question_index: a for a in answers}
 
     return render_template(
-        "teacher_review.html",
-        exam_id=attempt.exam_id,
-        student=attempt.student_name,
-        questions=questions,
-        answer_map=answer_map
+    "teacher_review.html",
+    exam_id=exam_id,
+    student=attempt.student_name,
+    questions=questions,
+    attempt=attempt
     )
 
 @app.route("/teacher/mark/<exam_id>/<student>")
@@ -367,12 +367,11 @@ def teacher_mark(attempt_id):
     answer_map = {a.question_index: a for a in answers}
 
     return render_template(
-        "teacher_mark_attempt.html",
-        exam_id=attempt.exam_id,
-        student=attempt.student_name,
-        attempt_id=attempt_id,
-        questions=questions,
-        answer_map=answer_map
+    "teacher_mark_attempt.html",
+    exam_id=exam_id,
+    student=attempt.student_name,
+    questions=questions,
+    attempt=attempt
     )
 @app.route("/student/results/<int:attempt_id>")
 def student_results(attempt_id):
