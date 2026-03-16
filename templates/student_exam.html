@@ -90,12 +90,11 @@ const ctx=canvas.getContext("2d");
 
 function resizeCanvas(){
 
-canvas.width=img.clientWidth;
-canvas.height=img.clientHeight;
+canvas.width = img.naturalWidth || img.clientWidth;
+canvas.height = img.naturalHeight || img.clientHeight;
 
-canvas.style.width=img.clientWidth+"px";
-canvas.style.height=img.clientHeight+"px";
-
+canvas.style.width = img.clientWidth + "px";
+canvas.style.height = img.clientHeight + "px";
 }
 
 if(img.complete) resizeCanvas();
@@ -158,13 +157,13 @@ canvas.onmousemove=(e)=>{
 if(!drawing) return;
 
 if(currentTool==="pencil"){
+ctx.lineWidth = 2;
+ctx.strokeStyle = document.getElementById("colorPicker").value;
 
-ctx.lineWidth=2;
-ctx.strokeStyle=document.getElementById("colorPicker").value;
+ctx.lineCap = "round";
 
-ctx.lineTo(e.offsetX,e.offsetY);
+ctx.lineTo(e.offsetX, e.offsetY);
 ctx.stroke();
-
 }
 
 if(currentTool==="eraser"){
@@ -279,7 +278,11 @@ ctx.clearRect(0,0,canvas.width,canvas.height);
 
 /* Initialize canvases */
 
-document.querySelectorAll("canvas").forEach(initCanvas);
+window.addEventListener("load", () => {
+    document.querySelectorAll("canvas").forEach(canvas => {
+        initCanvas(canvas);
+    });
+});
 
 
 /* Autosave */
@@ -342,6 +345,14 @@ studentName:document.getElementById("studentName").value
 .then(r=>r.json())
 .then(()=>alert("Exam Submitted"));
 
+}
+function setTool(tool){
+currentTool = tool;
+
+document.querySelectorAll("canvas").forEach(c=>{
+    if(tool==="eraser") c.style.cursor="cell";
+    else c.style.cursor="crosshair";
+});
 }
 
 </script>

@@ -43,14 +43,15 @@ body{
 }
 
 .diagram-wrap{
-    position:relative;
-    width:400px;
-    margin-top:10px;
+position:relative;
+display:inline-block;
 }
 
-.base-diagram{
-    width:100%;
-    display:block;
+.diagram-wrap canvas{
+position:absolute;
+left:0;
+top:0;
+cursor:crosshair;
 }
 
 .overlay{
