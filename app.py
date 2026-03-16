@@ -342,31 +342,29 @@ def teacher_save_marks(attempt_id):
     db.session.commit()
 
     return jsonify({"status": "success"})
+
 @app.route("/teacher/mark/<int:attempt_id>")
 def teacher_mark(attempt_id):
 
-    # Get the attempt
     attempt = Attempt.query.get_or_404(attempt_id)
 
-    # Get all questions of this exam
-    questions = Question.query.filter_by(
-        exam_id=attempt.exam_id
-    ).order_by(Question.question_index).all()
+    exam_id = attempt.exam_id
 
-    # Get all answers of this student
-    answers = Answer.query.filter_by(
-        attempt_id=attempt.id
-    ).all()
+    exam = Exam.query.filter_by(exam_id=exam_id).first()
 
-    # Map answers by question index
+    questions = Question.query.filter_by(exam_id=exam_id).all()
+
+    answers = Answer.query.filter_by(attempt_id=attempt_id).all()
+
     answer_map = {a.question_index: a for a in answers}
 
     return render_template(
-    "teacher_mark_attempt.html",
-    exam_id=exam_id,
-    student=attempt.student_name,
-    questions=questions,
-    attempt=attempt
+        "teacher_mark_attempt.html",
+        exam_id=exam_id,
+        student=attempt.student_name,
+        questions=questions,
+        attempt_id=attempt_id,
+        answer_map=answer_map
     )
 @app.route("/student/results/<int:attempt_id>")
 def student_results(attempt_id):

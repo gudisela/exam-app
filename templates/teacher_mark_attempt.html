@@ -11,7 +11,7 @@
 {% for q in questions %}
 
 {% set idx = loop.index %}
-{% set ans = attempt.answers.get(idx|string,{}) %}
+{% set ans = answer_map.get(q.question_index) %}
 {% set mark = grading.marks.get(idx|string,{}) %}
 
 <div class="qbox">
