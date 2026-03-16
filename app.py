@@ -295,6 +295,8 @@ def teacher_review(attempt_id):
 
     # Get all questions of the exam
     questions = Question.query.filter_by(exam_id=exam_id).all()
+    for q in questions:
+        q.embedded_diagrams = EmbeddedDiagram.query.filter_by(question_id=q.id).all()
 
     # Get student answers
     answers = Answer.query.filter_by(attempt_id=attempt_id).all()
@@ -302,11 +304,7 @@ def teacher_review(attempt_id):
     # Map answers by question_index
     answer_map = {a.question_index: a for a in answers}
 
-    for q in questions:
-        print("QUESTION:", q.question_text)
-        print("EMBEDDED:", q.embedded_diagrams)
-        print("ANSWER:", q.answer_diagram)
-
+    
     return render_template(
         "teacher_review.html",
         questions=questions,
