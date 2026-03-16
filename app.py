@@ -408,6 +408,42 @@ def student_results(attempt_id):
         marks=marks,
         overall_comment=overall_comment
     )
+@app.route("/teacher/exams")
+def teacher_dashboard():
+
+    exams = Exam.query.all()
+
+    dashboard_data = []
+
+    for exam in exams:
+
+        attempts = Attempt.query.filter_by(
+            exam_id=exam.exam_id
+        ).count()
+
+        submitted = Attempt.query.filter_by(
+            exam_id=exam.exam_id,
+            submitted=True
+        ).count()
+
+        marked = Attempt.query.filter(
+            Attempt.exam_id == exam.exam_id,
+            Attempt.grading_json != None
+        ).count()
+
+        dashboard_data.append({
+            "exam_id": exam.exam_id,
+            "exam_title": exam.exam_title,
+            "attempts": attempts,
+            "submitted": submitted,
+            "marked": marked
+        })
+
+    return render_template(
+        "teacher_dashboard.html",
+        exams=dashboard_data
+    )
+
 # ---------------------------------------
 # RUN
 # ---------------------------------------

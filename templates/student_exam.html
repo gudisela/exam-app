@@ -1,305 +1,349 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ exam_title }}</title>
+{% extends "base.html" %}
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-
-        .question-box {
-            border: 1px solid #ccc;
-            padding: 15px;
-            margin-bottom: 30px;
-            border-radius: 8px;
-        }
-
-        .diagram-container {
-            position: relative;
-            display: inline-block;
-            margin-top: 10px;
-        }
-
-        .diagram-container img {
-            display: block;
-            max-width: 100%;
-            height: auto;
-        }
-
-        .diagram-container canvas {
-            position: absolute;
-            left: 0;
-            top: 0;
-            z-index: 2;
-        }
-
-        textarea {
-            width: 100%;
-            height: 120px;
-            margin-top: 10px;
-        }
-
-        .toolbar {
-            margin: 10px 0;
-        }
-
-        .toolbar button {
-            margin-right: 6px;
-            padding: 6px 10px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-
-<body>
+{% block content %}
 
 <h2>{{ exam_title }}</h2>
+
 <p><b>Exam ID:</b> {{ exam_id }}</p>
 
-<label><b>Student Name</b></label><br>
-<input id="studentName" style="width: 300px; padding: 6px;"><br><br>
+<label><b>Student Name</b></label><br> <input id="studentName" style="width:300px;padding:6px"><br><br>
 
 {% for q in questions %}
-<div class="question-box">
 
-    <h3>Question {{ loop.index }}</h3>
+<div class="qbox">
 
-    <!-- ✅ Correct DB field -->
-    <p>{{ q.question_text }}</p>
+<h3>Question {{ loop.index }}</h3>
 
-    <!-- ✅ Embedded diagrams (Cloudinary URLs) -->
-    {% if q.embedded_diagrams %}
-        {% for diagram in q.embedded_diagrams %}
-            <img src="{{ diagram.image_url }}" width="400">
-        {% endfor %}
-    {% endif %}
+<p>{{ q.question_text }}</p>
 
-    <!-- ✅ Answer Diagram -->
-    {% if q.answer_diagram %}
+<!-- Embedded Diagrams -->
 
-        <div class="toolbar">
-            <button type="button" onclick="setTool('pencil')">✏ Pencil</button>
-            <button type="button" onclick="setTool('ray')">🔦 Ray</button>
-            <button type="button" onclick="setTool('line')">📏 Line</button>
-            <button type="button" onclick="setTool('eraser')">🧽 Eraser</button>
-            <button type="button" onclick="undo({{ loop.index }})">↶ Undo</button>
-            <button type="button" onclick="redo({{ loop.index }})">↷ Redo</button>
-            <button type="button" onclick="clearCanvas({{ loop.index }})">🗑 Clear</button>
-            <input type="color" id="colorPicker" value="#ff0000">
-        </div>
+{% if q.embedded_diagrams %}
 
-        <div class="diagram-container">
-            <!-- ✅ Direct Cloudinary URL -->
-            <img src="{{ q.answer_diagram }}">
-            <canvas id="canvas_{{ loop.index }}"></canvas>
-        </div>
+<div class="question-diagrams">
 
-    {% endif %}
-
-    <textarea id="answer_{{ loop.index }}"
-              placeholder="Write your answer here…"></textarea>
-
-    <br><br>
-    <button onclick="autosave({{ loop.index }})">Save Answer</button>
+{% for diagram in q.embedded_diagrams %} <img class="embedded-diagram" src="{{ diagram.image_url }}">
+{% endfor %}
 
 </div>
+
+{% endif %}
+
+<!-- Answer Diagram (drawing canvas) -->
+
+{% if q.answer_diagram %}
+
+<div class="toolbar">
+
+<button type="button" onclick="setTool('pencil')">✏ Pencil</button> <button type="button" onclick="setTool('ray')">🔦 Ray</button> <button type="button" onclick="setTool('line')">📏 Line</button> <button type="button" onclick="setTool('eraser')">🧽 Eraser</button> <button type="button" onclick="undo({{ loop.index }})">↶ Undo</button> <button type="button" onclick="redo({{ loop.index }})">↷ Redo</button> <button type="button" onclick="clearCanvas({{ loop.index }})">🗑 Clear</button>
+
+<input type="color" id="colorPicker" value="#ff0000">
+
+</div>
+
+<div class="diagram-wrap">
+
+<img class="base-diagram" src="{{ q.answer_diagram }}">
+
+<canvas id="canvas_{{ loop.index }}"></canvas>
+
+</div>
+
+{% endif %}
+
+<textarea
+id="answer_{{ loop.index }}"
+placeholder="Write your answer here…"
+></textarea>
+
+<br><br>
+
+<button onclick="autosave({{ loop.index }})">
+Save Answer
+</button>
+
+</div>
+
 {% endfor %}
 
 <button onclick="submitExam()">Final Submit</button>
 
 <script>
 
-let currentTool = "pencil";
-let drawing = false;
-let startX, startY;
+let currentTool="pencil";
+let drawing=false;
+let startX,startY;
 
-const history = {};
+const history={};
 
-function setTool(tool) {
-    currentTool = tool;
+function setTool(tool){
+currentTool=tool;
 }
 
-/* ✅ Canvas Auto-Resize */
-function initCanvas(canvas) {
 
-    const img = canvas.previousElementSibling;
-    const ctx = canvas.getContext("2d");
+/* Canvas Setup */
 
-    function resizeCanvas() {
-        canvas.width = img.clientWidth;
-        canvas.height = img.clientHeight;
+function initCanvas(canvas){
 
-        canvas.style.width = img.clientWidth + "px";
-        canvas.style.height = img.clientHeight + "px";
-    }
+const img=canvas.previousElementSibling;
+const ctx=canvas.getContext("2d");
 
-    if (img.complete) resizeCanvas();
-    else img.onload = resizeCanvas;
+function resizeCanvas(){
 
-    history[canvas.id] = { undoStack: [], redoStack: [] };
+canvas.width=img.clientWidth;
+canvas.height=img.clientHeight;
 
-    saveState(canvas);
+canvas.style.width=img.clientWidth+"px";
+canvas.style.height=img.clientHeight+"px";
 
-    canvas.onmousedown = (e) => {
-        drawing = true;
-        startX = e.offsetX;
-        startY = e.offsetY;
-
-        saveState(canvas);
-
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-    };
-
-    canvas.onmouseup = (e) => {
-
-        if (!drawing) return;
-        drawing = false;
-
-        const endX = e.offsetX;
-        const endY = e.offsetY;
-
-        ctx.strokeStyle = document.getElementById("colorPicker").value;
-
-        if (currentTool === "ray" || currentTool === "line") {
-
-            ctx.lineWidth = 2;
-
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-
-            if (currentTool === "ray") {
-                drawArrowhead(ctx, startX, startY, endX, endY);
-            }
-        }
-
-        ctx.beginPath();
-    };
-
-    canvas.onmousemove = (e) => {
-
-        if (!drawing) return;
-
-        if (currentTool === "pencil") {
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = document.getElementById("colorPicker").value;
-            ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.stroke();
-        }
-
-        if (currentTool === "eraser") {
-            ctx.lineWidth = 10;
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.stroke();
-        }
-    };
 }
 
-function drawArrowhead(ctx, x1, y1, x2, y2) {
-    const headLength = 12;
-    const angle = Math.atan2(y2 - y1, x2 - x1);
+if(img.complete) resizeCanvas();
+else img.onload=resizeCanvas;
 
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(
-        x2 - headLength * Math.cos(angle - Math.PI / 6),
-        y2 - headLength * Math.sin(angle - Math.PI / 6)
-    );
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(
-        x2 - headLength * Math.cos(angle + Math.PI / 6),
-        y2 - headLength * Math.sin(angle + Math.PI / 6)
-    );
-    ctx.stroke();
+history[canvas.id]={undoStack:[],redoStack:[]};
+
+saveState(canvas);
+
+
+canvas.onmousedown=(e)=>{
+
+drawing=true;
+
+startX=e.offsetX;
+startY=e.offsetY;
+
+saveState(canvas);
+
+ctx.beginPath();
+ctx.moveTo(startX,startY);
+
+};
+
+
+canvas.onmouseup=(e)=>{
+
+if(!drawing) return;
+
+drawing=false;
+
+const endX=e.offsetX;
+const endY=e.offsetY;
+
+ctx.strokeStyle=document.getElementById("colorPicker").value;
+
+
+if(currentTool==="ray" || currentTool==="line"){
+
+ctx.lineWidth=2;
+
+ctx.beginPath();
+ctx.moveTo(startX,startY);
+ctx.lineTo(endX,endY);
+ctx.stroke();
+
+if(currentTool==="ray"){
+drawArrowhead(ctx,startX,startY,endX,endY);
 }
 
-/* ✅ History */
-function saveState(canvas) {
-    history[canvas.id].undoStack.push(canvas.toDataURL());
-    history[canvas.id].redoStack = [];
 }
 
-function restoreState(canvas, dataURL) {
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
+ctx.beginPath();
 
-    img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-    };
-    img.src = dataURL;
+};
+
+
+canvas.onmousemove=(e)=>{
+
+if(!drawing) return;
+
+if(currentTool==="pencil"){
+
+ctx.lineWidth=2;
+ctx.strokeStyle=document.getElementById("colorPicker").value;
+
+ctx.lineTo(e.offsetX,e.offsetY);
+ctx.stroke();
+
 }
 
-function undo(index) {
-    const canvas = document.getElementById("canvas_" + index);
-    const stack = history[canvas.id];
-    if (!stack || stack.undoStack.length < 2) return;
+if(currentTool==="eraser"){
 
-    stack.redoStack.push(stack.undoStack.pop());
-    restoreState(canvas, stack.undoStack[stack.undoStack.length - 1]);
+ctx.lineWidth=10;
+ctx.strokeStyle="#ffffff";
+
+ctx.lineTo(e.offsetX,e.offsetY);
+ctx.stroke();
+
 }
 
-function redo(index) {
-    const canvas = document.getElementById("canvas_" + index);
-    const stack = history[canvas.id];
-    if (!stack || stack.redoStack.length === 0) return;
+};
 
-    const state = stack.redoStack.pop();
-    stack.undoStack.push(state);
-    restoreState(canvas, state);
 }
 
-function clearCanvas(index) {
-    const canvas = document.getElementById("canvas_" + index);
-    const ctx = canvas.getContext("2d");
 
-    saveState(canvas);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+/* Arrow Head */
+
+function drawArrowhead(ctx,x1,y1,x2,y2){
+
+const headLength=12;
+const angle=Math.atan2(y2-y1,x2-x1);
+
+ctx.beginPath();
+
+ctx.moveTo(x2,y2);
+
+ctx.lineTo(
+x2-headLength*Math.cos(angle-Math.PI/6),
+y2-headLength*Math.sin(angle-Math.PI/6)
+);
+
+ctx.moveTo(x2,y2);
+
+ctx.lineTo(
+x2-headLength*Math.cos(angle+Math.PI/6),
+y2-headLength*Math.sin(angle+Math.PI/6)
+);
+
+ctx.stroke();
+
 }
 
-/* ✅ Init canvases */
+
+/* History */
+
+function saveState(canvas){
+
+history[canvas.id].undoStack.push(canvas.toDataURL());
+history[canvas.id].redoStack=[];
+
+}
+
+
+function restoreState(canvas,dataURL){
+
+const ctx=canvas.getContext("2d");
+const img=new Image();
+
+img.onload=()=>{
+ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.drawImage(img,0,0);
+};
+
+img.src=dataURL;
+
+}
+
+
+function undo(index){
+
+const canvas=document.getElementById("canvas_"+index);
+const stack=history[canvas.id];
+
+if(!stack || stack.undoStack.length<2) return;
+
+stack.redoStack.push(stack.undoStack.pop());
+
+restoreState(canvas,stack.undoStack[stack.undoStack.length-1]);
+
+}
+
+
+function redo(index){
+
+const canvas=document.getElementById("canvas_"+index);
+const stack=history[canvas.id];
+
+if(!stack || stack.redoStack.length===0) return;
+
+const state=stack.redoStack.pop();
+
+stack.undoStack.push(state);
+
+restoreState(canvas,state);
+
+}
+
+
+function clearCanvas(index){
+
+const canvas=document.getElementById("canvas_"+index);
+const ctx=canvas.getContext("2d");
+
+saveState(canvas);
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+}
+
+
+/* Initialize canvases */
+
 document.querySelectorAll("canvas").forEach(initCanvas);
 
-/* ✅ Autosave */
-function autosave(qindex) {
 
-    const canvas = document.getElementById("canvas_" + qindex);
+/* Autosave */
 
-    fetch("/exam/autosave", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            exam_id: "{{ exam_id }}",
-            qindex: qindex,
-            studentName: document.getElementById("studentName").value,
-            answerText: document.getElementById("answer_" + qindex).value,
-            overlayImage: canvas ? canvas.toDataURL("image/png") : null
-        })
-    })
-    .then(r => r.json())
-    .then(() => alert("Saved"));
+function autosave(qindex){
+
+const canvas=document.getElementById("canvas_"+qindex);
+
+fetch("/exam/autosave",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+exam_id:"{{ exam_id }}",
+
+qindex:qindex,
+
+studentName:document.getElementById("studentName").value,
+
+answerText:document.getElementById("answer_"+qindex).value,
+
+overlayImage:canvas ? canvas.toDataURL("image/png") : null
+
+})
+
+})
+
+.then(r=>r.json())
+.then(()=>alert("Saved"));
+
 }
 
-/* ✅ Submit */
-function submitExam() {
-    fetch("/exam/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            exam_id: "{{ exam_id }}",
-            studentName: document.getElementById("studentName").value
-        })
-    })
-    .then(r => r.json())
-    .then(() => alert("Exam Submitted"));
+
+/* Submit Exam */
+
+function submitExam(){
+
+fetch("/exam/submit",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+exam_id:"{{ exam_id }}",
+studentName:document.getElementById("studentName").value
+
+})
+
+})
+
+.then(r=>r.json())
+.then(()=>alert("Exam Submitted"));
+
 }
 
 </script>
 
-</body>
-</html>
+{% endblock %}

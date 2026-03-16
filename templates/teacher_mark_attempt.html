@@ -1,73 +1,6 @@
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Mark Attempt — {{ student }} ({{ exam_id }})</title>
+{% extends "base.html" %}
 
-<style>
-body{
-    font-family: Arial;
-    margin:20px;
-}
-
-.question-box{
-    border:1px solid #ccc;
-    padding:15px;
-    margin-bottom:25px;
-    border-radius:8px;
-}
-
-.diagram{
-    position:relative;
-    display:inline-block;
-}
-
-.diagram img{
-    max-width:500px;
-    display:block;
-}
-
-.diagram .overlay{
-    position:absolute;
-    left:0;
-    top:0;
-}
-
-/* NEW: annotation canvas */
-.diagram canvas{
-    position:absolute;
-    left:0;
-    top:0;
-    cursor:crosshair;
-}
-
-input[type=number]{
-    width:80px;
-    padding:5px;
-    font-size:16px;
-}
-
-textarea{
-    width:100%;
-    height:80px;
-    margin-top:10px;
-}
-
-button{
-    padding:8px 14px;
-    font-size:16px;
-    cursor:pointer;
-}
-
-/* annotation toolbar */
-.toolbar button{
-    margin-right:10px;
-    margin-bottom:10px;
-}
-</style>
-</head>
-
-<body>
+{% block content %}
 
 <h2>Marking — {{ student }} (Exam: {{ exam_id }})</h2>
 
@@ -75,60 +8,25 @@ button{
 <a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a>
 </p>
 
-<!-- NEW: Annotation toolbar -->
-<div class="toolbar">
-
-<b>Annotation Tools:</b>
-
-<button onclick="setTool('tick')">✓ Tick</button>
-<button onclick="setTool('cross')">✗ Cross</button>
-<button onclick="setTool('underline')">Underline</button>
-<button onclick="setTool('highlight')">Highlight</button>
-<button onclick="setTool('draw')">Free Draw</button>
-<button onclick="clearCanvas()">Clear</button>
-
-</div>
-
-
 {% for q in questions %}
 
-{% set a = answer_map.get(q.question_index) %}
+{% set idx = loop.index %}
+{% set ans = attempt.answers.get(idx|string,{}) %}
+{% set mark = grading.marks.get(idx|string,{}) %}
 
-<div class="question-box">
+<div class="qbox">
 
-<h3>Question {{ q.question_index }}</h3>
+<h3>Question {{ idx }}</h3>
 
-<b>Question:</b>
-<p>{{ q.question_text }}</p>
+<p>{{ q.text }}</p>
 
-
-{% if q.answer_diagram %}
-<b>Diagram:</b>
-
-<div class="diagram">
-
-<img src="{{ q.answer_diagram }}" id="base_{{ q.question_index }}">
-
-{% if a and a.overlay_image %}
-<img src="{{ a.overlay_image }}" class="overlay">
-{% endif %}
-
-<!-- NEW: annotation canvas -->
-<canvas id="canvas_{{ q.question_index }}"></canvas>
-
-</div>
-
-{% endif %}
-
+{% include "components/diagram_block.html" %}
 
 <b>Student Answer:</b>
 
-{% if a %}
-<p>{{ a.answer_text }}</p>
-{% else %}
-<p><i>No answer submitted</i></p>
-{% endif %}
-
+<p>
+{{ ans.answerText or "No answer submitted" }}
+</p>
 
 <br>
 
@@ -136,7 +34,8 @@ button{
 
 <input
 type="number"
-id="marks_{{ q.question_index }}"
+id="marks_{{ idx }}"
+value="{{ mark.score or '' }}"
 min="0"
 step="0.5">
 
@@ -144,101 +43,49 @@ step="0.5">
 
 {% endfor %}
 
-
-
 <h3>Overall Comment</h3>
 
-<textarea id="overall_comment"></textarea>
-
+<textarea id="overall_comment">{{ grading.overall_comment }}</textarea>
 
 <br><br>
 
 <button onclick="saveMarks()">💾 Save Marks</button>
 
-
 <script>
 
-/* -----------------------
-ANNOTATION SYSTEM
------------------------ */
+function saveMarks(){
 
-let tool="draw";
+const marks={};
 
-function setTool(t){
-    tool=t;
-}
-
-const canvases=document.querySelectorAll("canvas");
-
-canvases.forEach(canvas=>{
-
-    const ctx=canvas.getContext("2d");
-
-    const img=canvas.previousElementSibling;
-
-    function resizeCanvas(){
-        canvas.width=img.clientWidth;
-        canvas.height=img.clientHeight;
-    }
-
-    if(img.complete){
-        resizeCanvas();
-    }else{
-        img.onload=resizeCanvas;
-    }
-
-    canvas.addEventListener("click",function(e){
-
-        const rect=canvas.getBoundingClientRect();
-
-        const x=e.clientX-rect.left;
-        const y=e.clientY-rect.top;
-
-        if(tool==="tick"){
-            ctx.font="30px Arial";
-            ctx.fillStyle="green";
-            ctx.fillText("✓",x,y);
-        }
-
-        if(tool==="cross"){
-            ctx.font="30px Arial";
-            ctx.fillStyle="red";
-            ctx.fillText("✗",x,y);
-        }
-
-        if(tool==="underline"){
-            ctx.beginPath();
-            ctx.moveTo(x-20,y);
-            ctx.lineTo(x+40,y);
-            ctx.strokeStyle="blue";
-            ctx.lineWidth=3;
-            ctx.stroke();
-        }
-
-        if(tool==="highlight"){
-            ctx.fillStyle="rgba(255,255,0,0.4)";
-            ctx.fillRect(x-30,y-10,80,20);
-        }
-
-        if(tool==="draw"){
-            ctx.fillStyle="blue";
-            ctx.beginPath();
-            ctx.arc(x,y,3,0,2*Math.PI);
-            ctx.fill();
-        }
-
-    });
-
+document.querySelectorAll("input[type=number]").forEach(input=>{
+const qindex=input.id.split("_")[1];
+marks[qindex]=input.value;
 });
 
-function clearCanvas(){
-    canvases.forEach(c=>{
-        const ctx=c.getContext("2d");
-        ctx.clearRect(0,0,c.width,c.height);
-    });
+fetch("/teacher/save_marks/{{ attempt_id }}",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+marks:marks,
+overall_comment:document.getElementById("overall_comment").value
+
+})
+
+})
+
+.then(r=>r.json())
+.then(d=>{
+alert("Marks saved successfully");
+});
+
 }
 
 </script>
 
-</body>
-</html>
+{% endblock %}

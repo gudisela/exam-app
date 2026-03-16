@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Teacher Exam Dashboard</h2>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%">
+
+<tr style="background:#eee">
+<th>Exam Name</th>
+<th>Attempts</th>
+<th>Submitted</th>
+<th>Marked</th>
+<th>Actions</th>
+</tr>
+
+{% for e in exams %}
+
+<tr>
+
+<td>
+<b>{{ e.exam_title }}</b><br>
+<small>{{ e.exam_id }}</small>
+</td>
+
+<td>{{ e.attempts }}</td>
+
+<td>{{ e.submitted }}</td>
+
+<td>{{ e.marked }}</td>
+
+<td>
+
+<a href="/teacher/attempts/{{ e.exam_id }}">
+<button>Review</button>
+</a>
+
+<a href="/teacher/attempts/{{ e.exam_id }}">
+<button>Mark</button>
+</a>
+
+<a href="/teacher/results/{{ e.exam_id }}">
+<button>Results</button>
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br><br>
+
+<a href="/teacher/create_exam">
+<button>Create New Exam</button>
+</a>
+
+{% endblock %}
+

@@ -1,0 +1,29 @@
+<div class="diagram-section">
+
+{% if q.embedded_diagrams %}
+
+<div class="question-diagrams">
+
+{% for img in q.embedded_diagrams %} <img class="embedded-diagram"
+  src="/exam_file/{{ exam_id }}/{{ img }}">
+{% endfor %}
+
+</div>
+{% endif %}
+
+{% if q.answer_diagram.enabled %}
+
+<div class="diagram-wrap">
+
+<img class="base-diagram"
+  src="/exam_file/{{ exam_id }}/{{ q.answer_diagram.src }}">
+
+{% if ans.overlay_file %} <img class="overlay"
+  src="/drawing/{{ ans.overlay_file }}">
+{% endif %}
+
+</div>
+
+{% endif %}
+
+</div>

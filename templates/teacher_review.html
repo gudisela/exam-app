@@ -1,71 +1,34 @@
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Review — {{ student }} ({{ exam_id }})</title>
+{% extends "base.html" %}
 
-<style>
-body{
-    font-family: Arial;
-    margin: 20px;
-}
-
-.question-box{
-    border:1px solid #ddd;
-    padding:12px;
-    margin-bottom:25px;
-    border-radius:6px;
-}
-
-img{
-    max-width:500px;
-    display:block;
-    margin:8px 0;
-}
-</style>
-</head>
-
-<body>
+{% block content %}
 
 <h2>Review — {{ student }} ({{ exam_id }})</h2>
-<p><a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a></p>
+
+<p>
+<a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a>
+</p>
 
 {% for q in questions %}
 
-<div class="question-box">
+{% set idx = loop.index %}
+{% set ans = attempt.answers.get(idx|string,{}) %}
 
-<h3>Question {{ q.question_index }}</h3>
+<div class="qbox">
 
-<p><b>Question:</b> {{ q.question_text }}</p>
+<h3>Question {{ idx }}</h3>
 
-{% set a = answer_map.get(q.question_index) %}
+<p>{{ q.text }}</p>
 
-{% if q.answer_diagram %}
-<div style="position:relative; display:inline-block;">
+{% include "components/diagram_block.html" %}
 
-<img src="{{ q.answer_diagram }}">
+<b>Student Answer:</b>
 
-{% if a and a.overlay_image %}
-<img src="{{ a.overlay_image }}"
-     style="position:absolute; left:0; top:0;">
-{% endif %}
-
-</div>
-{% endif %}
-
-<p><b>Answer:</b></p>
-
-{% if a %}
-<p>{{ a.answer_text }}</p>
-{% else %}
-<p><i>No answer submitted</i></p>
-{% endif %}
+<p>
+{{ ans.answerText or "No answer submitted" }}
+</p>
 
 </div>
-
-<hr>
 
 {% endfor %}
 
-</body>
-</html>
+{% endblock %}
