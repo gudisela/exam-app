@@ -64,31 +64,30 @@
 <b>Student:</b> {{ student }}
 </p>
 
-{% for idx, q in questions %}
+{% for q in questions %}
 
-    {% set qid = idx|string %}
+{% set idx = loop.index %}
+{% set ans = answer_map.get(q.question_index) %}
 
-    {% set ans = answers.get(qid, {}) if answers else {} %}
-
-    {% if grading and grading.marks %}
-        {% set mark = grading.marks.get(qid,{}) %}
-    {% else %}
-        {% set mark = {} %}
-    {% endif %}
-
-<div class="qbox">
+<div class="question-box">
 
 <h3>Question {{ idx }}</h3>
 
-<p>{{ q.question }}</p>
+<p>{{ q.question_text }}</p>
 
+{% include "components/diagram_block.html" %}
 
-<!-- Embedded diagrams -->
-{% if q.embedded_diagrams %}
-    {% for img in q.embedded_diagrams %}
-        <img src="/exam_file/{{ exam_id }}/{{ img }}" width="400">
-    {% endfor %}
+<b>Student Answer:</b>
+
+{% if ans %}
+<p>{{ ans.answer_text }}</p>
+{% else %}
+<p><i>No answer submitted</i></p>
 {% endif %}
+
+</div>
+
+{% endfor %}
 
 
 <!-- Answer diagram with overlay -->
