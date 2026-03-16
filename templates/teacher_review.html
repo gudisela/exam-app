@@ -32,15 +32,13 @@
 
 {% for diagram in q.embedded_diagrams %}
 
-<img src="{{ diagram.image_url }}" style="max-width:300px;margin:5px;">
+<img class="embedded-diagram" src="{{ diagram.image_url }}">
 
 {% endfor %}
 
 </div>
 
 {% endif %}
-
-
 
 <!-- Answer Diagram with Student Overlay -->
 
