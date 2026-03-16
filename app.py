@@ -285,23 +285,30 @@ def teacher_attempts(exam_id):
 @app.route("/teacher/review/<int:attempt_id>")
 def teacher_review(attempt_id):
 
+    # Get the exam attempt
     attempt = Attempt.query.get_or_404(attempt_id)
 
     exam_id = attempt.exam_id
 
-    questions = Question.query.filter_by(exam_id=exam_id)\
-        .order_by(Question.question_index).all()
+    # Get exam title
+    exam = Exam.query.filter_by(exam_id=exam_id).first()
 
+    # Get all questions of the exam
+    questions = Question.query.filter_by(exam_id=exam_id).all()
+
+    # Get student answers
     answers = Answer.query.filter_by(attempt_id=attempt_id).all()
 
+    # Map answers by question_index
     answer_map = {a.question_index: a for a in answers}
 
     return render_template(
         "teacher_review.html",
-        exam_id=exam_id,
-        student=attempt.student_name,
         questions=questions,
-        answer_map=answer_map
+        answer_map=answer_map,
+        exam_title=exam.title if exam else "Exam",
+        exam_id=exam_id,
+        student=attempt.student_name
     )
 
 @app.route("/teacher/mark/<exam_id>/<student>")

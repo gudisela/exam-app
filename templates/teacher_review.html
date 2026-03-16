@@ -2,10 +2,14 @@
 
 {% block content %}
 
-<h2>Review — {{ student }} (Exam: {{ exam_id }})</h2>
+<h2>{{ exam_title }}</h2>
 
 <p>
-<a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a>
+<b>Exam ID:</b> {{ exam_id }}
+</p>
+
+<p>
+<b>Student:</b> {{ student }}
 </p>
 
 {% for q in questions %}
@@ -17,35 +21,59 @@
 
 <h3>Question {{ idx }}</h3>
 
-<b>Question:</b>
 <p>{{ q.question_text }}</p>
 
-<!-- Embedded diagrams -->
+
+<!-- Embedded Diagrams -->
+
 {% if q.embedded_diagrams %}
-    {% for diagram in q.embedded_diagrams %}
-        <img src="{{ diagram.image_url }}" width="400">
-    {% endfor %}
-{% endif %}
 
-<!-- Answer diagram with overlay -->
-{% if q.answer_diagram %}
-<div class="diagram-wrap">
+<div class="question-diagrams">
 
-    <img src="{{ q.answer_diagram }}">
+{% for diagram in q.embedded_diagrams %}
 
-    {% if ans and ans.overlay_image %}
-        <img class="overlay" src="{{ ans.overlay_image }}">
-    {% endif %}
+<img src="{{ diagram.image_url }}" style="max-width:300px;margin:5px;">
+
+{% endfor %}
 
 </div>
+
 {% endif %}
 
-<b>Student Answer:</b>
 
-{% if ans %}
+
+<!-- Answer Diagram with Student Overlay -->
+
+{% if q.answer_diagram %}
+
+<div class="diagram-wrap">
+
+<img class="base-diagram" src="{{ q.answer_diagram }}">
+
+{% if ans and ans.overlay_image %}
+
+<img class="student-overlay" src="{{ ans.overlay_image }}">
+
+{% endif %}
+
+</div>
+
+{% endif %}
+
+
+
+<!-- Student Written Answer -->
+
+<h4>Student Answer</h4>
+
+{% if ans and ans.answer_text %}
+
 <p>{{ ans.answer_text }}</p>
+
 {% else %}
-<p class="noanswer"><i>No answer submitted</i></p>
+
+<p style="color:gray"><i>No answer submitted</i></p>
+
 {% endif %}
 
 </div>
