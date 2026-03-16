@@ -433,7 +433,7 @@ def teacher_dashboard():
 
         dashboard_data.append({
             "exam_id": exam.exam_id,
-            "exam_title": exam.exam_title,
+            "exam_title": exam.title,
             "attempts": attempts,
             "submitted": submitted,
             "marked": marked
