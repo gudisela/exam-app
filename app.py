@@ -282,23 +282,20 @@ def teacher_attempts(exam_id):
     attempts=attempts
 )
 
-@app.route("/teacher/review/<int:attempt_id>")
-def teacher_review(attempt_id):
+@app.route("/teacher/review/<int:id>")
+def teacher_review(id):
 
-    attempt = Attempt.query.get_or_404(attempt_id)
+    attempt = Attempt.query.get_or_404(id)
 
-    exam_id = attempt.exam_id
+    answers = {}
 
-    exam = Exam.query.filter_by(exam_id=exam_id).first()
-
-    questions = Question.query.filter_by(exam_id=exam_id).all()
+    if attempt.answers_json:
+        answers = json.loads(attempt.answers_json)
 
     return render_template(
         "teacher_review.html",
-        exam_id=exam_id,
-        student=attempt.student_name,
-        questions=questions,
-        attempt=attempt
+        attempt=attempt,
+        answers=answers
     )
 
 @app.route("/teacher/mark/<exam_id>/<student>")

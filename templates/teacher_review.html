@@ -1,34 +1,153 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reviewed Paper</title>
 
-{% block content %}
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
 
-<h2>Review — {{ student }} ({{ exam_id }})</h2>
+        .qbox {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .diagram-wrap {
+            position: relative;
+            width: 400px;
+            border: 1px solid #aaa;
+            margin: 10px 0;
+        }
+
+        .diagram-wrap img {
+            width: 100%;
+            display: block;
+        }
+
+        .overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .marks {
+            font-weight: bold;
+            margin-top: 8px;
+            color: green;
+        }
+
+        .comment {
+            background: white;
+            padding: 6px;
+            border-left: 3px solid #999;
+            margin-top: 4px;
+        }
+
+        .noanswer {
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>{{ exam_title }}</h2>
 
 <p>
-<a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a>
+<b>Student:</b> {{ student }}
 </p>
 
-{% for q in questions %}
+{% for idx, q in questions %}
 
-{% set idx = loop.index %}
-{% set ans = attempt.answers.get(idx|string,{}) %}
+    {% set qid = idx|string %}
+
+    {% set ans = answers.get(qid, {}) if answers else {} %}
+
+    {% if grading and grading.marks %}
+        {% set mark = grading.marks.get(qid,{}) %}
+    {% else %}
+        {% set mark = {} %}
+    {% endif %}
 
 <div class="qbox">
 
 <h3>Question {{ idx }}</h3>
 
-<p>{{ q.text }}</p>
+<p>{{ q.question }}</p>
 
-{% include "components/diagram_block.html" %}
 
-<b>Student Answer:</b>
+<!-- Embedded diagrams -->
+{% if q.embedded_diagrams %}
+    {% for img in q.embedded_diagrams %}
+        <img src="/exam_file/{{ exam_id }}/{{ img }}" width="400">
+    {% endfor %}
+{% endif %}
 
-<p>
-{{ ans.answerText or "No answer submitted" }}
-</p>
+
+<!-- Answer diagram with overlay -->
+{% if q.answer_diagram and q.answer_diagram.enabled %}
+
+<div class="diagram-wrap">
+
+<img src="/exam_file/{{ exam_id }}/{{ q.answer_diagram.src }}">
+
+{% if ans and ans.overlay_file %}
+<img class="overlay" src="/drawing/{{ ans.overlay_file }}">
+{% endif %}
+
+</div>
+
+{% endif %}
+
+
+<div>
+<b>Your Answer:</b>
+</div>
+
+<div>
+
+{% if ans and ans.answerText %}
+    {{ ans.answerText }}
+{% else %}
+    <span class="noanswer">No answer written</span>
+{% endif %}
+
+</div>
+
+
+<div class="marks">
+
+Marks Awarded:
+
+{% if mark and mark.score is defined %}
+    {{ mark.score }}
+{% else %}
+    Not marked
+{% endif %}
+
+</div>
+
+
+<div class="comment">
+
+{% if mark and mark.comment %}
+    {{ mark.comment }}
+{% else %}
+    No teacher comment
+{% endif %}
+
+</div>
 
 </div>
 
 {% endfor %}
 
-{% endblock %}
+</body>
+</html>
