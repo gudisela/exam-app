@@ -516,7 +516,6 @@ def teacher_dashboard():
         "teacher_dashboard.html",
         exams=dashboard_data
     )
-
 @app.route("/fix_db")
 def fix_db():
 
@@ -534,6 +533,11 @@ def fix_db():
 
     try:
         db.session.execute(text("ALTER TABLE answer ADD COLUMN marks FLOAT"))
+    except:
+        pass
+
+    try:
+        db.session.execute(text("ALTER TABLE answer ADD COLUMN overlay_image TEXT"))
     except:
         pass
 
