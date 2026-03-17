@@ -523,18 +523,17 @@ def fix_db():
     from sqlalchemy import text
 
     try:
-        db.session.execute(text("""
-        ALTER TABLE answer
-        ADD COLUMN teacher_overlay TEXT;
-        """))
+        db.session.execute(text("ALTER TABLE answer ADD COLUMN teacher_overlay TEXT"))
     except:
         pass
 
     try:
-        db.session.execute(text("""
-        ALTER TABLE answer
-        ADD COLUMN teacher_comment TEXT;
-        """))
+        db.session.execute(text("ALTER TABLE answer ADD COLUMN teacher_comment TEXT"))
+    except:
+        pass
+
+    try:
+        db.session.execute(text("ALTER TABLE answer ADD COLUMN marks FLOAT"))
     except:
         pass
 
