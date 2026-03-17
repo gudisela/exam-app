@@ -392,60 +392,40 @@ def teacher_mark(attempt_id):
         answer_map=answer_map,
         grading=grading
     )
-@app.route("/teacher/save_marks/<int:attempt_id>", methods=["POST"])
-def save_marks(attempt_id):
+import cloudinary
+import cloudinary.uploader
 
-    import base64
-    import cloudinary.uploader
+@app.route("/teacher/save_mark", methods=["POST"])
+def save_mark():
 
-    answers = Answer.query.filter_by(attempt_id=attempt_id).all()
+    data = request.json
 
-    answer_map = {a.question_index: a for a in answers}
+    attempt_id = data["attempt_id"]
+    qindex = data["qindex"]
+    marks = data["marks"]
+    comment = data["comment"]
+    overlay_image = data["overlayImage"]
 
-    for key in request.form:
+    answer = Answer.query.filter_by(
+        attempt_id=attempt_id,
+        question_index=qindex
+    ).first()
 
-        # Save marks
-        if key.startswith("marks_"):
+    if not answer:
+        return {"status": "error"}
 
-            qindex = int(key.split("_")[1])
+    # Upload to Cloudinary
+    if overlay_image:
+        upload_result = cloudinary.uploader.upload(overlay_image)
+        answer.teacher_overlay = upload_result["secure_url"]
 
-            if qindex in answer_map:
-                answer_map[qindex].marks = request.form[key]
-
-
-        # Save teacher comments
-        if key.startswith("comment_"):
-
-            qindex = int(key.split("_")[1])
-
-            if qindex in answer_map:
-                answer_map[qindex].teacher_comment = request.form[key]
-
-
-        # Save teacher overlay image
-        if key.startswith("overlay_"):
-
-            qindex = int(key.split("_")[1])
-
-            img = request.form[key]
-
-            if img and qindex in answer_map:
-
-                header, encoded = img.split(",",1)
-
-                image_bytes = base64.b64decode(encoded)
-
-                upload = cloudinary.uploader.upload(
-                    image_bytes,
-                    folder="teacher_marking"
-                )
-
-                answer_map[qindex].teacher_overlay = upload["secure_url"]
-
+    answer.marks = float(marks) if marks else None
+    answer.teacher_comment = comment
 
     db.session.commit()
 
-    return {"status":"saved"}
+    return {"status": "success"}
+
 
 @app.route("/student/results/<int:attempt_id>")
 def student_results(attempt_id):
@@ -520,22 +500,7 @@ from sqlalchemy import text
 
 from sqlalchemy import text
 
-@app.route("/fix_db")
-def fix_db():
 
-    try:
-        db.session.execute(text("""
-            ALTER TABLE answer
-            ADD COLUMN IF NOT EXISTS marks FLOAT
-        """))
-        print("✅ marks column added or already exists")
-
-    except Exception as e:
-        print("❌ ERROR:", e)
-
-    db.session.commit()
-
-    return "Database updated successfully"
 
 # ---------------------------------------
 # RUN

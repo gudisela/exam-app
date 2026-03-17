@@ -100,7 +100,8 @@
 
 <br><br>
 
-<button type="button" onclick="saveMarks()">💾 Save Marks</button>
+
+<button onclick="saveMark({{ idx }})">💾 Save Mark</button>
 
 </form>
 
@@ -419,6 +420,42 @@ body:data
 .then(r=>r.json())
 .then(()=>alert("Marks + overlays saved"))
 
+}
+function saveMark(qindex){
+
+    const canvas = document.getElementById("teacher_canvas_" + qindex);
+    const overlayImage = canvas ? canvas.toDataURL("image/png") : null;
+
+    const marks = document.getElementById("marks_" + qindex).value;
+    const comment = document.getElementById("comment_" + qindex).value;
+
+    fetch("/teacher/save_mark", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            attempt_id: "{{ attempt_id }}",
+            qindex: qindex,
+            marks: marks,
+            comment: comment,
+            overlayImage: overlayImage
+        })
+    })
+    .then(r => r.json())
+    .then(data => alert("Saved successfully"));
+}
+
+{% if ans and ans.teacher_overlay %}
+<img class="teacher-overlay" src="{{ ans.teacher_overlay }}">
+{% endif %}
+
+.teacher-overlay{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    pointer-events:none;
 }
 
 </script>
