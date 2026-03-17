@@ -69,7 +69,13 @@ class Answer(db.Model):
                            db.ForeignKey('attempt.id', ondelete="CASCADE"))
     question_index = db.Column(db.Integer)
     answer_text = db.Column(db.Text)
-    overlay_image = db.Column(db.Text)
+    overlay_image = db.Column(db.Text) # student drawing (Cloudinary URL)
+
+    teacher_overlay = db.Column(db.Text)    # NEW teacher drawing
+
+    marks = db.Column(db.Float)             # already existing
+
+    teacher_comment = db.Column(db.Text)    # already existing
 
 # ---------------------------------------
 # INIT DATABASE
@@ -386,6 +392,60 @@ def teacher_mark(attempt_id):
         answer_map=answer_map,
         grading=grading
     )
+@app.route("/teacher/save_marks/<int:attempt_id>", methods=["POST"])
+def save_marks(attempt_id):
+
+    import base64
+    import cloudinary.uploader
+
+    answers = Answer.query.filter_by(attempt_id=attempt_id).all()
+
+    answer_map = {a.question_index: a for a in answers}
+
+    for key in request.form:
+
+        # Save marks
+        if key.startswith("marks_"):
+
+            qindex = int(key.split("_")[1])
+
+            if qindex in answer_map:
+                answer_map[qindex].marks = request.form[key]
+
+
+        # Save teacher comments
+        if key.startswith("comment_"):
+
+            qindex = int(key.split("_")[1])
+
+            if qindex in answer_map:
+                answer_map[qindex].teacher_comment = request.form[key]
+
+
+        # Save teacher overlay image
+        if key.startswith("overlay_"):
+
+            qindex = int(key.split("_")[1])
+
+            img = request.form[key]
+
+            if img and qindex in answer_map:
+
+                header, encoded = img.split(",",1)
+
+                image_bytes = base64.b64decode(encoded)
+
+                upload = cloudinary.uploader.upload(
+                    image_bytes,
+                    folder="teacher_marking"
+                )
+
+                answer_map[qindex].teacher_overlay = upload["secure_url"]
+
+
+    db.session.commit()
+
+    return {"status":"saved"}
 
 @app.route("/student/results/<int:attempt_id>")
 def student_results(attempt_id):
