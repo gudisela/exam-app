@@ -517,6 +517,31 @@ def teacher_dashboard():
         exams=dashboard_data
     )
 
+@app.route("/fix_db")
+def fix_db():
+
+    from sqlalchemy import text
+
+    try:
+        db.session.execute(text("""
+        ALTER TABLE answer
+        ADD COLUMN teacher_overlay TEXT;
+        """))
+    except:
+        pass
+
+    try:
+        db.session.execute(text("""
+        ALTER TABLE answer
+        ADD COLUMN teacher_comment TEXT;
+        """))
+    except:
+        pass
+
+    db.session.commit()
+
+    return "Database updated successfully"
+
 # ---------------------------------------
 # RUN
 # ---------------------------------------
