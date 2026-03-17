@@ -516,30 +516,25 @@ def teacher_dashboard():
         "teacher_dashboard.html",
         exams=dashboard_data
     )
+from sqlalchemy import text
+
 @app.route("/fix_db")
 def fix_db():
 
-    from sqlalchemy import text
+    db.session.execute(text("""
+        ALTER TABLE answer
+        ADD COLUMN IF NOT EXISTS teacher_overlay TEXT
+    """))
 
-    try:
-        db.session.execute(text("ALTER TABLE answer ADD COLUMN teacher_overlay TEXT"))
-    except:
-        pass
+    db.session.execute(text("""
+        ALTER TABLE answer
+        ADD COLUMN IF NOT EXISTS teacher_comment TEXT
+    """))
 
-    try:
-        db.session.execute(text("ALTER TABLE answer ADD COLUMN teacher_comment TEXT"))
-    except:
-        pass
-
-    try:
-        db.session.execute(text("ALTER TABLE answer ADD COLUMN marks FLOAT"))
-    except:
-        pass
-
-    try:
-        db.session.execute(text("ALTER TABLE answer ADD COLUMN overlay_image TEXT"))
-    except:
-        pass
+    db.session.execute(text("""
+        ALTER TABLE answer
+        ADD COLUMN IF NOT EXISTS marks FLOAT
+    """))
 
     db.session.commit()
 
