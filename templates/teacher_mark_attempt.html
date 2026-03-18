@@ -2,6 +2,8 @@
 
 {% block content %}
 
+<link rel="stylesheet" href="{{ url_for('static', filename='drawing.css') }}">
+
 <h2>Marking — {{ student }} (Exam: {{ exam_id }})</h2>
 
 <a href="/teacher/attempts/{{ exam_id }}">← Back to Attempts</a>
@@ -9,7 +11,6 @@
 <form id="markForm">
 
 {% for q in questions %}
-
 {% set idx = loop.index %}
 {% set ans = answer_map.get(q.question_index) %}
 
@@ -20,56 +21,45 @@
 <p>{{ q.question_text }}</p>
 
 <!-- Embedded Diagrams -->
-
 {% if q.embedded_diagrams %}
-
 <div class="question-diagrams">
-{% for diagram in q.embedded_diagrams %}
-<img class="embedded-diagram" src="{{ diagram.image_url }}">
-{% endfor %}
+    {% for diagram in q.embedded_diagrams %}
+    <img class="embedded-diagram" src="{{ diagram.image_url }}">
+    {% endfor %}
 </div>
 {% endif %}
 
-<!-- Answer Diagram with Student Overlay + Teacher Canvas -->
-
+<!-- Answer Diagram + Canvas -->
 {% if q.answer_diagram %}
 
 <div class="toolbar">
 
 <button type="button" onclick="setTool('pencil')">✏ Pencil</button>
-
 <button type="button" onclick="setTool('ray')">🔦 Ray</button>
-
 <button type="button" onclick="setTool('line')">📏 Line</button>
-
 <button type="button" onclick="setTool('tick')">✔ Tick</button>
-
 <button type="button" onclick="setTool('cross')">✖ Cross</button>
-
 <button type="button" onclick="setTool('highlight')">🟨 Highlight</button>
-
 <button type="button" onclick="setTool('underline')">➖ Underline</button>
-
 <button type="button" onclick="setTool('eraser')">🧽 Eraser</button>
 
 <button type="button" onclick="undo({{ idx }})">↶ Undo</button>
-
 <button type="button" onclick="redo({{ idx }})">↷ Redo</button>
-
 <button type="button" onclick="clearCanvas({{ idx }})">🗑 Clear</button>
 
 <input type="color" id="colorPicker" value="#0000ff">
 
 </div>
 
-<div class="diagram-wrap">
+<div class="diagram-wrap" style="position:relative; display:inline-block;">
 
 <img class="base-diagram" src="{{ q.answer_diagram }}">
 
-{% if ans and ans.overlay_image %} <img class="student-overlay" src="{{ ans.overlay_image }}">
+{% if ans and ans.overlay_image %}
+<img class="student-overlay" src="{{ ans.overlay_image }}">
 {% endif %}
 
-<canvas id="canvas_{{ idx }}"></canvas>
+<canvas id="teacher_canvas_{{ idx }}" style="position:absolute; top:0; left:0;"></canvas>
 
 </div>
 
@@ -78,7 +68,6 @@
 <h4>Student Answer</h4>
 
 {% if ans and ans.answer_text %}
-
 <p>{{ ans.answer_text }}</p>
 {% else %}
 <p style="color:gray"><i>No answer submitted</i></p>
@@ -86,376 +75,222 @@
 
 <label>Marks:</label>
 
-<input type="number"
-    name="marks_{{ idx }}"
-    value="{{ grading.marks.get(idx|string, {}).get('marks','') }}">
+<input type="number" id="marks_{{ idx }}" name="marks_{{ idx }}">
+
+<br><br>
+
+<button type="button" onclick="saveMark({{ idx }})">💾 Save</button>
 
 </div>
 
 {% endfor %}
 
 <h3>Overall Comment</h3>
-
 <textarea name="overall_comment">{{ grading.overall_comment }}</textarea>
-
-<br><br>
-
-
-<button onclick="saveMark({{ idx }})">💾 Save Mark</button>
 
 </form>
 
+<!-- JS FILE -->
+<script src="{{ url_for('static', filename='drawing.js') }}"></script>
+
+<!-- MAIN SCRIPT -->
 <script>
 
 let currentTool="pencil"
 let drawing=false
 let startX,startY
-
 const history={}
 
 function setTool(tool){
-currentTool=tool
+    currentTool=tool
 }
 
-/* Canvas Setup */
+/* INIT CANVAS */
 
 function initCanvas(canvas){
 
-const img=canvas.previousElementSibling.previousElementSibling
-const ctx=canvas.getContext("2d")
+    const img = canvas.parentElement.querySelector(".base-diagram")
+    const ctx = canvas.getContext("2d")
 
-function resizeCanvas(){
+    function resizeCanvas(){
+        canvas.width = img.clientWidth
+        canvas.height = img.clientHeight
+        canvas.style.width = img.clientWidth+"px"
+        canvas.style.height = img.clientHeight+"px"
+    }
 
-canvas.width=img.clientWidth
-canvas.height=img.clientHeight
+    if(img.complete) resizeCanvas()
+    else img.onload = resizeCanvas
 
-canvas.style.width=img.clientWidth+"px"
-canvas.style.height=img.clientHeight+"px"
+    history[canvas.id] = {undoStack:[], redoStack:[]}
+    saveState(canvas)
 
+    canvas.onmousedown = (e)=>{
+        drawing=true
+        startX=e.offsetX
+        startY=e.offsetY
+        saveState(canvas)
+        ctx.beginPath()
+        ctx.moveTo(startX,startY)
+    }
+
+    canvas.onmouseup = (e)=>{
+        if(!drawing) return
+        drawing=false
+
+        const endX=e.offsetX
+        const endY=e.offsetY
+
+        ctx.strokeStyle=document.getElementById("colorPicker").value
+        ctx.lineWidth=2
+
+        if(currentTool==="line" || currentTool==="ray"){
+            ctx.beginPath()
+            ctx.moveTo(startX,startY)
+            ctx.lineTo(endX,endY)
+            ctx.stroke()
+
+            if(currentTool==="ray"){
+                drawArrowhead(ctx,startX,startY,endX,endY)
+            }
+        }
+
+        if(currentTool==="tick"){
+            ctx.strokeStyle="green"
+            ctx.beginPath()
+            ctx.moveTo(endX-10,endY)
+            ctx.lineTo(endX-2,endY+8)
+            ctx.lineTo(endX+12,endY-10)
+            ctx.stroke()
+        }
+
+        if(currentTool==="cross"){
+            ctx.strokeStyle="red"
+            ctx.beginPath()
+            ctx.moveTo(endX-10,endY-10)
+            ctx.lineTo(endX+10,endY+10)
+            ctx.moveTo(endX+10,endY-10)
+            ctx.lineTo(endX-10,endY+10)
+            ctx.stroke()
+        }
+
+        if(currentTool==="underline"){
+            ctx.beginPath()
+            ctx.moveTo(startX,endY)
+            ctx.lineTo(endX,endY)
+            ctx.stroke()
+        }
+
+        ctx.beginPath()
+    }
+
+    canvas.onmousemove = (e)=>{
+        if(!drawing) return
+
+        if(currentTool==="pencil"){
+            ctx.lineTo(e.offsetX,e.offsetY)
+            ctx.stroke()
+        }
+
+        if(currentTool==="eraser"){
+            ctx.strokeStyle="#ffffff"
+            ctx.lineWidth=12
+            ctx.lineTo(e.offsetX,e.offsetY)
+            ctx.stroke()
+        }
+
+        if(currentTool==="highlight"){
+            ctx.strokeStyle="rgba(255,255,0,0.4)"
+            ctx.lineWidth=20
+            ctx.lineTo(e.offsetX,e.offsetY)
+            ctx.stroke()
+        }
+    }
 }
 
-if(img.complete) resizeCanvas()
-else img.onload=resizeCanvas
-
-history[canvas.id]={undoStack:[],redoStack:[]}
-
-saveState(canvas)
-
-
-canvas.onmousedown=(e)=>{
-
-drawing=true
-startX=e.offsetX
-startY=e.offsetY
-
-saveState(canvas)
-
-ctx.beginPath()
-ctx.moveTo(startX,startY)
-
-}
-
-
-canvas.onmouseup=(e)=>{
-
-if(!drawing) return
-
-drawing=false
-
-const endX=e.offsetX
-const endY=e.offsetY
-
-
-/* LINE + RAY */
-
-if(currentTool==="line" || currentTool==="ray"){
-
-ctx.strokeStyle=document.getElementById("colorPicker").value
-ctx.lineWidth=2
-
-ctx.beginPath()
-ctx.moveTo(startX,startY)
-ctx.lineTo(endX,endY)
-ctx.stroke()
-
-if(currentTool==="ray"){
-drawArrowhead(ctx,startX,startY,endX,endY)
-}
-
-}
-
-
-/* TICK */
-
-if(currentTool==="tick"){
-
-ctx.strokeStyle="green"
-ctx.lineWidth=3
-
-ctx.beginPath()
-ctx.moveTo(endX-10,endY)
-ctx.lineTo(endX-2,endY+8)
-ctx.lineTo(endX+12,endY-10)
-ctx.stroke()
-
-}
-
-
-/* CROSS */
-
-if(currentTool==="cross"){
-
-ctx.strokeStyle="red"
-ctx.lineWidth=3
-
-ctx.beginPath()
-
-ctx.moveTo(endX-10,endY-10)
-ctx.lineTo(endX+10,endY+10)
-
-ctx.moveTo(endX+10,endY-10)
-ctx.lineTo(endX-10,endY+10)
-
-ctx.stroke()
-
-}
-
-
-/* UNDERLINE */
-
-if(currentTool==="underline"){
-
-ctx.strokeStyle=document.getElementById("colorPicker").value
-ctx.lineWidth=3
-
-ctx.beginPath()
-ctx.moveTo(startX,endY)
-ctx.lineTo(endX,endY)
-ctx.stroke()
-
-}
-
-ctx.beginPath()
-
-}
-
-
-canvas.onmousemove=(e)=>{
-
-if(!drawing) return
-
-
-/* PENCIL */
-
-if(currentTool==="pencil"){
-
-ctx.lineWidth=2
-ctx.strokeStyle=document.getElementById("colorPicker").value
-
-ctx.lineTo(e.offsetX,e.offsetY)
-ctx.stroke()
-
-}
-
-
-/* ERASER */
-
-if(currentTool==="eraser"){
-
-ctx.lineWidth=12
-ctx.strokeStyle="#ffffff"
-
-ctx.lineTo(e.offsetX,e.offsetY)
-ctx.stroke()
-
-}
-
-
-/* HIGHLIGHT */
-
-if(currentTool==="highlight"){
-
-ctx.lineWidth=20
-ctx.strokeStyle="rgba(255,255,0,0.4)"
-
-ctx.lineTo(e.offsetX,e.offsetY)
-ctx.stroke()
-
-}
-
-}
-
-}
-
-
-
-/* Arrowhead */
+/* Arrow */
 
 function drawArrowhead(ctx,x1,y1,x2,y2){
+    const headLength=12
+    const angle=Math.atan2(y2-y1,x2-x1)
 
-const headLength=12
-const angle=Math.atan2(y2-y1,x2-x1)
-
-ctx.beginPath()
-
-ctx.moveTo(x2,y2)
-ctx.lineTo(
-x2-headLength*Math.cos(angle-Math.PI/6),
-y2-headLength*Math.sin(angle-Math.PI/6)
-)
-
-ctx.moveTo(x2,y2)
-ctx.lineTo(
-x2-headLength*Math.cos(angle+Math.PI/6),
-y2-headLength*Math.sin(angle+Math.PI/6)
-)
-
-ctx.stroke()
-
+    ctx.beginPath()
+    ctx.moveTo(x2,y2)
+    ctx.lineTo(x2-headLength*Math.cos(angle-Math.PI/6), y2-headLength*Math.sin(angle-Math.PI/6))
+    ctx.moveTo(x2,y2)
+    ctx.lineTo(x2-headLength*Math.cos(angle+Math.PI/6), y2-headLength*Math.sin(angle+Math.PI/6))
+    ctx.stroke()
 }
-
-
 
 /* History */
 
 function saveState(canvas){
-
-history[canvas.id].undoStack.push(canvas.toDataURL())
-history[canvas.id].redoStack=[]
-
+    history[canvas.id].undoStack.push(canvas.toDataURL())
+    history[canvas.id].redoStack=[]
 }
 
 function restoreState(canvas,dataURL){
-
-const ctx=canvas.getContext("2d")
-const img=new Image()
-
-img.onload=()=>{
-
-ctx.clearRect(0,0,canvas.width,canvas.height)
-ctx.drawImage(img,0,0)
-
+    const ctx=canvas.getContext("2d")
+    const img=new Image()
+    img.onload=()=>{
+        ctx.clearRect(0,0,canvas.width,canvas.height)
+        ctx.drawImage(img,0,0)
+    }
+    img.src=dataURL
 }
-
-img.src=dataURL
-
-}
-
 
 function undo(index){
-
-const canvas=document.getElementById("canvas_"+index)
-const stack=history[canvas.id]
-
-if(!stack || stack.undoStack.length<2) return
-
-stack.redoStack.push(stack.undoStack.pop())
-
-restoreState(canvas,stack.undoStack[stack.undoStack.length-1])
-
+    const canvas=document.getElementById("teacher_canvas_"+index)
+    const stack=history[canvas.id]
+    if(!stack || stack.undoStack.length<2) return
+    stack.redoStack.push(stack.undoStack.pop())
+    restoreState(canvas,stack.undoStack[stack.undoStack.length-1])
 }
-
 
 function redo(index){
-
-const canvas=document.getElementById("canvas_"+index)
-const stack=history[canvas.id]
-
-if(!stack || stack.redoStack.length===0) return
-
-const state=stack.redoStack.pop()
-
-stack.undoStack.push(state)
-
-restoreState(canvas,state)
-
+    const canvas=document.getElementById("teacher_canvas_"+index)
+    const stack=history[canvas.id]
+    if(!stack || stack.redoStack.length===0) return
+    const state=stack.redoStack.pop()
+    stack.undoStack.push(state)
+    restoreState(canvas,state)
 }
-
 
 function clearCanvas(index){
-
-const canvas=document.getElementById("canvas_"+index)
-const ctx=canvas.getContext("2d")
-
-saveState(canvas)
-
-ctx.clearRect(0,0,canvas.width,canvas.height)
-
+    const canvas=document.getElementById("teacher_canvas_"+index)
+    const ctx=canvas.getContext("2d")
+    saveState(canvas)
+    ctx.clearRect(0,0,canvas.width,canvas.height)
 }
 
+/* INIT AFTER LOAD */
 
-/* Initialize */
-
-document.querySelectorAll("canvas").forEach(initCanvas)
-
-
-
-/* Save Marks */
-
-function saveMarks(){
-
-const form=document.getElementById("markForm")
-
-const data=new FormData(form)
-
-/* send teacher overlays */
-
-document.querySelectorAll("canvas").forEach(canvas=>{
-
-const qindex = canvas.id.split("_")[1]
-
-data.append(
-"overlay_"+qindex,
-canvas.toDataURL("image/png")
-)
-
-})
-
-fetch("/teacher/save_marks/{{ attempt_id }}",{
-
-method:"POST",
-body:data
-
-})
-.then(r=>r.json())
-.then(()=>alert("Marks + overlays saved"))
-
+window.onload = function(){
+    document.querySelectorAll("canvas").forEach(initCanvas)
 }
+
+/* SAVE MARK */
+
 function saveMark(qindex){
 
-    const canvas = document.getElementById("teacher_canvas_" + qindex);
-    const overlayImage = canvas ? canvas.toDataURL("image/png") : null;
+    const canvas = document.getElementById("teacher_canvas_" + qindex)
+    const overlayImage = canvas ? canvas.toDataURL("image/png") : null
 
-    const marks = document.getElementById("marks_" + qindex).value;
-    const comment = document.getElementById("comment_" + qindex).value;
+    const marks = document.getElementById("marks_" + qindex).value
 
     fetch("/teacher/save_mark", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             attempt_id: "{{ attempt_id }}",
             qindex: qindex,
             marks: marks,
-            comment: comment,
             overlayImage: overlayImage
         })
     })
     .then(r => r.json())
-    .then(data => alert("Saved successfully"));
-}
-
-{% if ans and ans.teacher_overlay %}
-<img class="teacher-overlay" src="{{ ans.teacher_overlay }}">
-{% endif %}
-
-.teacher-overlay{
-    position:absolute;
-    top:0;
-    left:0;
-    width:100%;
-    pointer-events:none;
+    .then(() => alert("Saved successfully"))
+    .catch(err => console.error(err))
 }
 
 </script>
