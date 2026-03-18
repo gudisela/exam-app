@@ -395,37 +395,40 @@ def teacher_mark(attempt_id):
 import cloudinary
 import cloudinary.uploader
 
+from flask import request, jsonify
+
 @app.route("/teacher/save_mark", methods=["POST"])
 def save_mark():
 
-    data = request.json
+    try:
+        data = request.get_json()
 
-    attempt_id = data["attempt_id"]
-    qindex = data["qindex"]
-    marks = data["marks"]
-    comment = data["comment"]
-    overlay_image = data["overlayImage"]
+        attempt_id = data.get("attempt_id")
+        qindex = data.get("qindex")
+        marks = data.get("marks")
+        overlay = data.get("overlayImage")
 
-    answer = Answer.query.filter_by(
-        attempt_id=attempt_id,
-        question_index=qindex
-    ).first()
+        print("DEBUG:", attempt_id, qindex, marks)
 
-    if not answer:
-        return {"status": "error"}
+        answer = Answer.query.filter_by(
+            attempt_id=attempt_id,
+            question_index=qindex
+        ).first()
 
-    # Upload to Cloudinary
-    if overlay_image:
-        upload_result = cloudinary.uploader.upload(overlay_image)
-        answer.teacher_overlay = upload_result["secure_url"]
+        if answer:
+            answer.marks = float(marks) if marks else 0
+            answer.teacher_overlay = overlay
 
-    answer.marks = float(marks) if marks else None
-    answer.teacher_comment = comment
+            db.session.commit()
 
-    db.session.commit()
+            return jsonify({"status": "success"})
 
-    return {"status": "success"}
+        return jsonify({"status": "not found"})
 
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"status": "error"})
+    
 
 @app.route("/student/results/<int:attempt_id>")
 def student_results(attempt_id):

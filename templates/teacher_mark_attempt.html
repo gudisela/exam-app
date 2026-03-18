@@ -288,9 +288,15 @@ function saveMark(qindex){
             overlayImage: overlayImage
         })
     })
-    .then(r => r.json())
-    .then(() => alert("Saved successfully"))
-    .catch(err => console.error(err))
+    	.then(r => r.json())
+	.then(data => {
+    	console.log("Server response:", data);
+   	 alert("Saved successfully");
+	})
+	.catch(err => {
+    	console.error("ERROR:", err);
+   	 alert("Save failed");
+	});
 }
 
 </script>
